@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"app/internal/config"
+	"app/internal/githubapp"
 	"app/internal/server"
 )
 
@@ -23,12 +25,20 @@ func main() {
 }
 
 func run() error {
+	printToken := flag.Bool("print-installation-token", false, "print installation token and exit")
+	flag.Parse()
+
 	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
 
 	logger := log.New(os.Stderr, "app: ", log.LstdFlags|log.LUTC)
+
+	if *printToken {
+		return printInstallationToken(cfg)
+	}
+
 	srv := server.New(cfg, logger)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
@@ -61,4 +71,26 @@ func run() error {
 		}
 		return fmt.Errorf("listen: %w", err)
 	}
+}
+
+func printInstallationToken(cfg config.Config) error {
+	if err := cfg.ValidateForToken(); err != nil {
+		return err
+	}
+
+	appJWT, err := githubapp.CreateAppJWT(cfg.AppID, cfg.PrivateKeyPath, time.Now())
+	if err != nil {
+		return err
+	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+	token, err := githubapp.FetchInstallationToken(context.Background(), client, cfg.GitHubAPIBaseURL, appJWT, cfg.InstallationID)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(token.Token)
+	return nil
 }

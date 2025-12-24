@@ -76,3 +76,36 @@ go run ./cmd/app
 ```
 
 注: Node 18環境で動かない場合があるため、`smee-client@1.0.2`を指定しています。
+
+## Installation tokenの取得（動作確認）
+
+以下の環境変数を設定し、トークンを表示します。
+
+```
+export GITHUB_APP_ID=123
+export GITHUB_INSTALLATION_ID=456
+export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
+export GITHUB_API_BASE_URL=https://api.github.com
+```
+
+```bash
+go run ./cmd/app --print-installation-token
+```
+
+注: これはローカル検証向けの機能です。運用時はログや出力先の扱いに注意してください。
+
+## 認証フロー図（概要）
+
+```mermaid
+sequenceDiagram
+    participant GitHub as GitHub
+    participant App as App Server
+    participant API as GitHub API
+
+    GitHub->>App: Webhook (installation / installation_repositories)
+    App->>App: Installation IDを取得
+    App->>App: App ID + Private KeyでJWT生成
+    App->>API: JWTでInstallation tokenを要求
+    API-->>App: Installation token
+    App->>API: TokenでPR/コメント等のAPI実行
+```
