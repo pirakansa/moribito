@@ -24,6 +24,9 @@ func NewRouter(logger *log.Logger) *Router {
 	}
 	r.Register("installation", HandleInstallation(logger))
 	r.Register("installation_repositories", HandleInstallationRepositories(logger))
+	r.Register("pull_request", HandlePullRequest(logger))
+	r.Register("issue_comment", HandleIssueComment(logger))
+	r.Register("check_run", HandleCheckRun(logger))
 	return r
 }
 

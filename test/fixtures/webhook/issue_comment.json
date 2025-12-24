@@ -1,0 +1,12 @@
+{
+  "action": "created",
+  "issue": {
+    "number": 7
+  },
+  "comment": {
+    "id": 9001
+  },
+  "repository": {
+    "full_name": "example/repo"
+  }
+}

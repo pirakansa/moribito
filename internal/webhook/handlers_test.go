@@ -38,3 +38,39 @@ func TestHandleInstallationFixture(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestHandlePullRequest(t *testing.T) {
+	logger := log.New(&bytes.Buffer{}, "test: ", 0)
+	handler := HandlePullRequest(logger)
+	body, err := readFixture("pull_request.json")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	if err := handler(context.Background(), "pull_request", "d1", body); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestHandleIssueComment(t *testing.T) {
+	logger := log.New(&bytes.Buffer{}, "test: ", 0)
+	handler := HandleIssueComment(logger)
+	body, err := readFixture("issue_comment.json")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	if err := handler(context.Background(), "issue_comment", "d1", body); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestHandleCheckRun(t *testing.T) {
+	logger := log.New(&bytes.Buffer{}, "test: ", 0)
+	handler := HandleCheckRun(logger)
+	body, err := readFixture("check_run.json")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	if err := handler(context.Background(), "check_run", "d1", body); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

@@ -1,0 +1,11 @@
+{
+  "action": "completed",
+  "check_run": {
+    "id": 555,
+    "name": "ci/test",
+    "head_sha": "deadbeef"
+  },
+  "repository": {
+    "full_name": "example/repo"
+  }
+}
