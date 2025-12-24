@@ -44,3 +44,18 @@ func TestValidateForToken(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func TestValidateForWebhook(t *testing.T) {
+	cfg := Config{}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing addr")
+	}
+
+	cfg = Config{
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+	}
+	if err := cfg.ValidateForWebhook(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

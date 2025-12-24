@@ -130,4 +130,14 @@ sequenceDiagram
 - `internal/githubapp`: JWT生成、Webhook署名、Installation token取得、キャッシュ
 - `internal/webhook`: イベントルーティングと基本のパース
 
+### Fixtures
+
+Webhookのテスト用payloadは`test/fixtures/webhook/`に配置しています。
+イベント追加時は対応するfixtureを追加してください。
+
+## 観測性（ログ）
+
+- `X-GitHub-Delivery` と `X-GitHub-Request-Id` をログに出力します。
+- エラー時も同じIDを出すため、再送判断やトラブルシュートがしやすくなります。
+
 ローカル検証が必要な場合は、`smee`でWebhookを中継し実イベントで挙動確認できます。

@@ -43,26 +43,10 @@ func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
+	requestID := requestIDFromHeaders(r)
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
-	}
-
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		s.writeError(w, http.StatusBadRequest, fmt.Errorf("read body: %w", err))
-		return
-	}
-
-	if s.cfg.WebhookSecret != "" {
-		signature := r.Header.Get("X-Hub-Signature-256")
-		if signature == "" {
-			signature = r.Header.Get("X-Hub-Signature")
-		}
-		if !githubapp.VerifyWebhookSignature(s.cfg.WebhookSecret, body, signature) {
-			s.writeError(w, http.StatusUnauthorized, fmt.Errorf("invalid webhook signature"))
-			return
-		}
 	}
 
 	event := r.Header.Get("X-GitHub-Event")
@@ -74,16 +58,43 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		delivery = "unknown"
 	}
 
-	if err := s.handler.Handle(context.Background(), event, delivery, body); err != nil {
-		s.writeError(w, http.StatusInternalServerError, err)
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		s.writeError(w, http.StatusBadRequest, fmt.Errorf("read body: %w", err), requestID, delivery)
 		return
 	}
-	s.logger.Printf("webhook received event=%s delivery=%s bytes=%d", event, delivery, len(body))
+
+	if s.cfg.WebhookSecret != "" {
+		signature := r.Header.Get("X-Hub-Signature-256")
+		if signature == "" {
+			signature = r.Header.Get("X-Hub-Signature")
+		}
+		if !githubapp.VerifyWebhookSignature(s.cfg.WebhookSecret, body, signature) {
+			s.writeError(w, http.StatusUnauthorized, fmt.Errorf("invalid webhook signature"), requestID, delivery)
+			return
+		}
+	}
+
+	if err := s.handler.Handle(context.Background(), event, delivery, body); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err, requestID, delivery)
+		return
+	}
+	s.logger.Printf("webhook received event=%s delivery=%s request_id=%s bytes=%d", event, delivery, requestID, len(body))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
 }
 
-func (s *Server) writeError(w http.ResponseWriter, status int, err error) {
-	s.logger.Printf("http error status=%d err=%v", status, err)
+func (s *Server) writeError(w http.ResponseWriter, status int, err error, requestID string, delivery string) {
+	s.logger.Printf("http error status=%d request_id=%s delivery=%s err=%v", status, requestID, delivery, err)
 	http.Error(w, http.StatusText(status), status)
+}
+
+func requestIDFromHeaders(r *http.Request) string {
+	if value := strings.TrimSpace(r.Header.Get("X-GitHub-Request-Id")); value != "" {
+		return value
+	}
+	if value := strings.TrimSpace(r.Header.Get("X-Request-Id")); value != "" {
+		return value
+	}
+	return "unknown"
 }

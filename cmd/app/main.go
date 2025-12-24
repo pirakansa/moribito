@@ -38,6 +38,9 @@ func run() error {
 	if *printToken {
 		return printInstallationToken(cfg)
 	}
+	if err := cfg.ValidateForWebhook(); err != nil {
+		return err
+	}
 
 	srv := server.New(cfg, logger)
 	httpServer := &http.Server{

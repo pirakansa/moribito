@@ -61,6 +61,17 @@ func (c Config) ValidateForToken() error {
 	return nil
 }
 
+// ValidateForWebhook ensures the minimum config for running the webhook server.
+func (c Config) ValidateForWebhook() error {
+	if strings.TrimSpace(c.Addr) == "" {
+		return fmt.Errorf("APP_ADDR is required")
+	}
+	if strings.TrimSpace(c.GitHubWebhookPath) == "" {
+		return fmt.Errorf("GITHUB_WEBHOOK_PATH is required")
+	}
+	return nil
+}
+
 func envOrDefault(key, def string) string {
 	value := strings.TrimSpace(os.Getenv(key))
 	if value == "" {
