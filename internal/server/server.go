@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -9,19 +10,22 @@ import (
 
 	"app/internal/config"
 	"app/internal/githubapp"
+	"app/internal/webhook"
 )
 
 // Server provides HTTP handlers for the GitHub App skeleton.
 type Server struct {
-	cfg    config.Config
-	logger *log.Logger
+	cfg     config.Config
+	logger  *log.Logger
+	handler *webhook.Router
 }
 
 // New builds a new Server.
 func New(cfg config.Config, logger *log.Logger) *Server {
 	return &Server{
-		cfg:    cfg,
-		logger: logger,
+		cfg:     cfg,
+		logger:  logger,
+		handler: webhook.NewRouter(logger),
 	}
 }
 
@@ -70,6 +74,10 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		delivery = "unknown"
 	}
 
+	if err := s.handler.Handle(context.Background(), event, delivery, body); err != nil {
+		s.writeError(w, http.StatusInternalServerError, err)
+		return
+	}
 	s.logger.Printf("webhook received event=%s delivery=%s bytes=%d", event, delivery, len(body))
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
