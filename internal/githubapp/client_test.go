@@ -3,8 +3,9 @@ package githubapp
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
-	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -15,21 +16,22 @@ func TestNewClientInvalidBaseURL(t *testing.T) {
 }
 
 func TestDoJSONSuccess(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := r.Header.Get("Authorization"); got != "Bearer token" {
-			t.Fatalf("unexpected auth header: %s", got)
-		}
-		if got := r.Header.Get("Accept"); got == "" {
-			t.Fatalf("missing accept header")
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]string{
+	var gotAuth string
+	var gotAccept string
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		gotAuth = r.Header.Get("Authorization")
+		gotAccept = r.Header.Get("Accept")
+		payload, _ := json.Marshal(map[string]string{
 			"message": "ok",
 		})
-	}))
-	defer server.Close()
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(string(payload))),
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+		}, nil
+	})
 
-	client, err := NewClient(server.URL, server.Client())
+	client, err := NewClient("https://example.test", &http.Client{Transport: transport})
 	if err != nil {
 		t.Fatalf("new client: %v", err)
 	}
@@ -38,19 +40,27 @@ func TestDoJSONSuccess(t *testing.T) {
 	if err := client.DoJSON(context.Background(), http.MethodGet, "/test", "token", nil, &out); err != nil {
 		t.Fatalf("do json: %v", err)
 	}
+	if gotAuth != "Bearer token" {
+		t.Fatalf("unexpected auth header: %s", gotAuth)
+	}
+	if gotAccept == "" {
+		t.Fatalf("missing accept header")
+	}
 	if out["message"] != "ok" {
 		t.Fatalf("unexpected response: %v", out)
 	}
 }
 
 func TestDoJSONError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusForbidden)
-		_, _ = w.Write([]byte("forbidden"))
-	}))
-	defer server.Close()
+	transport := roundTripFunc(func(_ *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusForbidden,
+			Body:       io.NopCloser(strings.NewReader("forbidden")),
+			Header:     http.Header{},
+		}, nil
+	})
 
-	client, err := NewClient(server.URL, server.Client())
+	client, err := NewClient("https://example.test", &http.Client{Transport: transport})
 	if err != nil {
 		t.Fatalf("new client: %v", err)
 	}

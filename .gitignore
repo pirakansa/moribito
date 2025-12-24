@@ -33,3 +33,6 @@ go.work.sum
 
 /bin
 /*.pem
+/.gocache
+/.cache
+/.gotmp
