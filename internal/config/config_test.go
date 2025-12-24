@@ -28,3 +28,19 @@ func TestLoadInvalidInt(t *testing.T) {
 		t.Fatalf("expected error for invalid app id")
 	}
 }
+
+func TestValidateForToken(t *testing.T) {
+	cfg := Config{}
+	if err := cfg.ValidateForToken(); err == nil {
+		t.Fatalf("expected error for missing fields")
+	}
+
+	cfg = Config{
+		AppID:          1,
+		InstallationID: 2,
+		PrivateKeyPath: "/tmp/key.pem",
+	}
+	if err := cfg.ValidateForToken(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}

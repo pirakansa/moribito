@@ -40,6 +40,13 @@ make test
 - Webhook Secret: Webhookの署名検証に使います。
 - API Base URL: GitHub Enterprise Server向けに`https://<host>/api/v3`へ変更できます。
 
+## 雛形の狙い（何が入っているか）
+
+- Webhook受信: `/webhook`でイベントを受け取り、署名検証を行います。
+- 認証: App ID + Private KeyでJWTを作成し、Installation tokenを取得できます。
+- ルーティング: Webhookイベントごとにハンドラを分離できる構成です。
+- 拡張ポイント: Issue/PRイベントへの対応やAPI呼び出しを追加しやすくしています。
+
 ## 環境変数
 
 ```
@@ -51,6 +58,13 @@ GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
 GITHUB_WEBHOOK_SECRET=secret
 GITHUB_API_BASE_URL=https://api.github.com
 ```
+
+### 使い分けの目安
+
+- `GITHUB_APP_ID` / `GITHUB_PRIVATE_KEY_PATH`: **JWT作成**に必須。
+- `GITHUB_INSTALLATION_ID`: **Installation token取得**に必須。
+- `GITHUB_WEBHOOK_SECRET`: **Webhook署名検証**に使用（未設定なら検証をスキップ）。
+- `GITHUB_API_BASE_URL`: **Enterprise Server**のときは必須。
 
 ## ローカル開発の流れ（例）
 
@@ -109,3 +123,11 @@ sequenceDiagram
     API-->>App: Installation token
     App->>API: TokenでPR/コメント等のAPI実行
 ```
+
+## テスト方針
+
+- `internal/config`: 環境変数の読み取りとバリデーション
+- `internal/githubapp`: JWT生成、Webhook署名、Installation token取得、キャッシュ
+- `internal/webhook`: イベントルーティングと基本のパース
+
+ローカル検証が必要な場合は、`smee`でWebhookを中継し実イベントで挙動確認できます。
