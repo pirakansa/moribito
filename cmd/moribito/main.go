@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
-	"app/internal/config"
-	"app/internal/githubapp"
-	"app/internal/queue"
-	"app/internal/server"
+	"github.com/pirakansa/moribito/internal/config"
+	"github.com/pirakansa/moribito/internal/githubapp"
+	"github.com/pirakansa/moribito/internal/queue"
+	"github.com/pirakansa/moribito/internal/server"
 )
 
 // main starts the GitHub App skeleton server.

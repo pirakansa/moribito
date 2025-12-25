@@ -8,7 +8,7 @@
 ## Job Queue
 
 - The queue is in-memory and will be lost on restart.
-- Increase workers or buffer size in `cmd/app/main.go` if needed.
+- Increase workers or buffer size in `cmd/moribito/main.go` if needed.
 
 ## GitHub Enterprise Server
 

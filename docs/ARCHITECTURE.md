@@ -13,7 +13,7 @@ app authentication. It is intentionally small and avoids framework lock-in.
 
 ## Key Components
 
-- `cmd/app`: CLI entry point and server lifecycle.
+- `cmd/moribito`: CLI entry point and server lifecycle.
 - `internal/server`: HTTP server and webhook endpoint.
 - `internal/webhook`: Event router and per-event handlers.
 - `internal/githubapp`: JWT creation, token fetch, and API client.

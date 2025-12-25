@@ -3,7 +3,7 @@ package main
 import (
 	"testing"
 
-	"app/internal/config"
+	"github.com/pirakansa/moribito/internal/config"
 )
 
 func TestPrintInstallationTokenMissingConfig(t *testing.T) {

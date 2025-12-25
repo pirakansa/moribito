@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"strings"
 
-	"app/internal/config"
-	"app/internal/githubapp"
-	"app/internal/webhook"
+	"github.com/pirakansa/moribito/internal/config"
+	"github.com/pirakansa/moribito/internal/githubapp"
+	"github.com/pirakansa/moribito/internal/webhook"
 )
 
 // Server provides HTTP handlers for the GitHub App skeleton.

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log"
 
-	"app/internal/queue"
+	"github.com/pirakansa/moribito/internal/queue"
 )
 
 type installationPayload struct {

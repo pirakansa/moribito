@@ -94,7 +94,7 @@ GITHUB_API_BASE_URL=https://api.github.com
 
 1. GitHub Appを作成し、Webhook URLを`http://localhost:8080/webhook`に設定します。
 2. `GITHUB_PRIVATE_KEY_PATH`に秘密鍵を保存します。
-3. `go run ./cmd/app`で起動します。
+3. `go run ./cmd/moribito`で起動します。
 
 注: 本リポジトリのWebhook処理は骨組みのみです。イベント内容の処理やAPI呼び出しは今後追加します。
 

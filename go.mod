@@ -1,4 +1,4 @@
-module app
+module github.com/pirakansa/moribito
 
 go 1.24
 
