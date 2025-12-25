@@ -7,7 +7,7 @@
 ## Local Run
 
 ```bash
-go run ./cmd/app
+go run ./cmd/moribito
 ```
 
 ## Tests

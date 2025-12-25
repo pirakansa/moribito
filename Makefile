@@ -1,6 +1,6 @@
 # Makefile
 
-PROJECT_NAME := app
+PROJECT_NAME := moribito
 BINDIR       := ./bin
 HOSTDIR      := $(BINDIR)/host
 LINUX_AMD64  := linux-amd64

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	defaultUserAgent = "pghapp/0.1"
+	defaultUserAgent = "moribito/0.1"
 	maxErrorBody     = 4096
 )
 

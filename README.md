@@ -1,4 +1,20 @@
-# pghapp
+<p align="center">
+  <!-- ロゴ画像を配置（正方形アイコン推奨） -->
+  <img src="./docs/moribito-logo.png" width="160" alt="MORIBITO logo"/>
+</p>
+
+<h1 align="center">M.O.R.I.B.I.T.O.</h1>
+<p align="center">
+  <strong>Monitoring Orchestrator for Repository Issues and Build Integrity; Trustee Officer.</strong><br>
+  A GitHub App appointed to oversee issues, reviews, and entrusted operations within your repository.
+</p>
+
+---
+
+## About M.O.R.I.B.I.T.O.
+**M.O.R.I.B.I.T.O.** is a GitHub App that acts as a repository’s appointed “Trustee Officer.”  
+It monitors activity, supports discussions, assists reviews, and can execute entrusted tasks on your behalf.
+
 
 GolangでGitHub Appを作るための雛形です。標準の`net/http`だけでWebhook受信と認証の骨組みを提供します。
 
@@ -28,7 +44,7 @@ make build
 ## Run
 
 ```bash
-go run ./cmd/app
+go run ./cmd/moribito
 ```
 
 起動後は`/healthz`と`/webhook`が利用できます。
@@ -94,7 +110,7 @@ npx -p smee-client@1.0.2 smee -u https://smee.io/<your-id> -p 8080 -P /webhook
 3. アプリを起動します。
 
 ```bash
-go run ./cmd/app
+go run ./cmd/moribito
 ```
 
 注: Node 18環境で動かない場合があるため、`smee-client@1.0.2`を指定しています。
@@ -111,7 +127,7 @@ export GITHUB_API_BASE_URL=https://api.github.com
 ```
 
 ```bash
-go run ./cmd/app --print-installation-token
+go run ./cmd/moribito --print-installation-token
 ```
 
 注: これはローカル検証向けの機能です。運用時はログや出力先の扱いに注意してください。
