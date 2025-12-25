@@ -1,6 +1,6 @@
 <p align="center">
   <!-- ロゴ画像を配置（正方形アイコン推奨） -->
-  <img src="./docs/moribito-logo.png" width="160" alt="MORIBITO logo"/>
+  <img src="./docs/moribito-logo.png" width="320" alt="MORIBITO logo"/>
 </p>
 
 <h1 align="center">M.O.R.I.B.I.T.O.</h1>
