@@ -21,11 +21,11 @@ type Server struct {
 }
 
 // New builds a new Server.
-func New(cfg config.Config, logger *log.Logger) *Server {
+func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter) *Server {
 	return &Server{
 		cfg:     cfg,
 		logger:  logger,
-		handler: webhook.NewRouter(logger),
+		handler: webhook.NewRouter(logger, submitter),
 	}
 }
 

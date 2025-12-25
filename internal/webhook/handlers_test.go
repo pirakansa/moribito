@@ -9,7 +9,7 @@ import (
 
 func TestHandleInstallationInvalidJSON(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleInstallation(logger)
+	handler := HandleInstallation(logger, nil)
 	if err := handler(context.Background(), "installation", "d1", []byte("{")); err == nil {
 		t.Fatalf("expected error for invalid json")
 	}
@@ -17,7 +17,7 @@ func TestHandleInstallationInvalidJSON(t *testing.T) {
 
 func TestHandleInstallationRepositories(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleInstallationRepositories(logger)
+	handler := HandleInstallationRepositories(logger, nil)
 	body, err := readFixture("installation_repositories.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -29,7 +29,7 @@ func TestHandleInstallationRepositories(t *testing.T) {
 
 func TestHandleInstallationFixture(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleInstallation(logger)
+	handler := HandleInstallation(logger, nil)
 	body, err := readFixture("installation.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -41,7 +41,7 @@ func TestHandleInstallationFixture(t *testing.T) {
 
 func TestHandlePullRequest(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandlePullRequest(logger)
+	handler := HandlePullRequest(logger, nil)
 	body, err := readFixture("pull_request.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -53,7 +53,7 @@ func TestHandlePullRequest(t *testing.T) {
 
 func TestHandleIssueComment(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleIssueComment(logger)
+	handler := HandleIssueComment(logger, nil)
 	body, err := readFixture("issue_comment.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -65,7 +65,7 @@ func TestHandleIssueComment(t *testing.T) {
 
 func TestHandleCheckRun(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleCheckRun(logger)
+	handler := HandleCheckRun(logger, nil)
 	body, err := readFixture("check_run.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)

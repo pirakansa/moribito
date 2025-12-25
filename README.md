@@ -45,6 +45,7 @@ make test
 - Webhook受信: `/webhook`でイベントを受け取り、署名検証を行います。
 - 認証: App ID + Private KeyでJWTを作成し、Installation tokenを取得できます。
 - ルーティング: Webhookイベントごとにハンドラを分離できる構成です。
+- ジョブキュー: 長い処理を非同期化するための簡易キューを持ちます。
 - 拡張ポイント: Issue/PRイベントへの対応やAPI呼び出しを追加しやすくしています。
 
 ## 環境変数

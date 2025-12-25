@@ -17,16 +17,16 @@ type Router struct {
 }
 
 // NewRouter builds a Router with default handlers.
-func NewRouter(logger *log.Logger) *Router {
+func NewRouter(logger *log.Logger, submitter Submitter) *Router {
 	r := &Router{
 		logger:   logger,
 		handlers: make(map[string]Handler),
 	}
-	r.Register("installation", HandleInstallation(logger))
-	r.Register("installation_repositories", HandleInstallationRepositories(logger))
-	r.Register("pull_request", HandlePullRequest(logger))
-	r.Register("issue_comment", HandleIssueComment(logger))
-	r.Register("check_run", HandleCheckRun(logger))
+	r.Register("installation", HandleInstallation(logger, submitter))
+	r.Register("installation_repositories", HandleInstallationRepositories(logger, submitter))
+	r.Register("pull_request", HandlePullRequest(logger, submitter))
+	r.Register("issue_comment", HandleIssueComment(logger, submitter))
+	r.Register("check_run", HandleCheckRun(logger, submitter))
 	return r
 }
 

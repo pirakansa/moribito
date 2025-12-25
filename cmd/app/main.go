@@ -13,6 +13,7 @@ import (
 
 	"app/internal/config"
 	"app/internal/githubapp"
+	"app/internal/queue"
 	"app/internal/server"
 )
 
@@ -42,16 +43,18 @@ func run() error {
 		return err
 	}
 
-	srv := server.New(cfg, logger)
+	jobQueue := queue.New(100)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	jobQueue.Start(ctx, 2)
+
+	srv := server.New(cfg, logger, jobQueue)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           srv.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       30 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	errCh := make(chan error, 1)
 	go func() {
@@ -66,6 +69,8 @@ func run() error {
 		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("shutdown: %w", err)
 		}
+		jobQueue.Close()
+		jobQueue.Wait()
 		logger.Println("shutdown complete")
 		return nil
 	case err := <-errCh:
