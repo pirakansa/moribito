@@ -12,6 +12,13 @@ GolangでGitHub Appを作るための雛形です。標準の`net/http`だけで
 go mod tidy
 ```
 
+## Docs
+
+- `docs/ARCHITECTURE.md`
+- `docs/CONFIG.md`
+- `docs/DEVELOPMENT.md`
+- `docs/OPERATIONS.md`
+
 ## Build
 
 ```bash

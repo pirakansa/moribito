@@ -64,7 +64,7 @@ func HandleInstallation(logger *log.Logger, submitter Submitter) Handler {
 			return err
 		}
 		logger.Printf("event=%s delivery=%s action=%s installation_id=%d", event, delivery, payload.Action, payload.Installation.ID)
-		enqueueJob(ctx, submitter, queue.Job{
+		enqueueJob(ctx, logger, submitter, queue.Job{
 			Name: "installation",
 			Run: func(_ context.Context) error {
 				logger.Printf("job=installation action=%s installation_id=%d", payload.Action, payload.Installation.ID)
@@ -83,7 +83,7 @@ func HandleInstallationRepositories(logger *log.Logger, submitter Submitter) Han
 			return err
 		}
 		logger.Printf("event=%s delivery=%s action=%s installation_id=%d", event, delivery, payload.Action, payload.Installation.ID)
-		enqueueJob(ctx, submitter, queue.Job{
+		enqueueJob(ctx, logger, submitter, queue.Job{
 			Name: "installation_repositories",
 			Run: func(_ context.Context) error {
 				logger.Printf("job=installation_repositories action=%s installation_id=%d", payload.Action, payload.Installation.ID)
@@ -102,7 +102,7 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter) Handler {
 			return fmt.Errorf("decode pull_request payload: %w", err)
 		}
 		logger.Printf("event=%s delivery=%s action=%s repo=%s number=%d", event, delivery, payload.Action, payload.Repository.FullName, payload.PullRequest.Number)
-		enqueueJob(ctx, submitter, queue.Job{
+		enqueueJob(ctx, logger, submitter, queue.Job{
 			Name: "pull_request",
 			Run: func(_ context.Context) error {
 				logger.Printf("job=pull_request action=%s repo=%s number=%d", payload.Action, payload.Repository.FullName, payload.PullRequest.Number)
@@ -121,7 +121,7 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter) Handler {
 			return fmt.Errorf("decode issue_comment payload: %w", err)
 		}
 		logger.Printf("event=%s delivery=%s action=%s repo=%s issue=%d comment_id=%d", event, delivery, payload.Action, payload.Repository.FullName, payload.Issue.Number, payload.Comment.ID)
-		enqueueJob(ctx, submitter, queue.Job{
+		enqueueJob(ctx, logger, submitter, queue.Job{
 			Name: "issue_comment",
 			Run: func(_ context.Context) error {
 				logger.Printf("job=issue_comment action=%s repo=%s issue=%d comment_id=%d", payload.Action, payload.Repository.FullName, payload.Issue.Number, payload.Comment.ID)
@@ -140,7 +140,7 @@ func HandleCheckRun(logger *log.Logger, submitter Submitter) Handler {
 			return fmt.Errorf("decode check_run payload: %w", err)
 		}
 		logger.Printf("event=%s delivery=%s action=%s repo=%s check_run=%d name=%s", event, delivery, payload.Action, payload.Repository.FullName, payload.CheckRun.ID, payload.CheckRun.Name)
-		enqueueJob(ctx, submitter, queue.Job{
+		enqueueJob(ctx, logger, submitter, queue.Job{
 			Name: "check_run",
 			Run: func(_ context.Context) error {
 				logger.Printf("job=check_run action=%s repo=%s check_run=%d name=%s", payload.Action, payload.Repository.FullName, payload.CheckRun.ID, payload.CheckRun.Name)
@@ -159,9 +159,11 @@ func decodeInstallationPayload(body []byte) (installationPayload, error) {
 	return payload, nil
 }
 
-func enqueueJob(ctx context.Context, submitter Submitter, job queue.Job) {
+func enqueueJob(ctx context.Context, logger *log.Logger, submitter Submitter, job queue.Job) {
 	if submitter == nil {
 		return
 	}
-	_ = submitter.Enqueue(ctx, job)
+	if err := submitter.Enqueue(ctx, job); err != nil {
+		logger.Printf("job enqueue failed name=%s err=%v", job.Name, err)
+	}
 }
