@@ -10,21 +10,31 @@ import (
 	"github.com/pirakansa/moribito/internal/githubapp"
 )
 
-// mockGitHubClient is a test double for githubapp.IssueReactor.
+// mockGitHubClient is a test double for githubapp.GitHubClient.
 type mockGitHubClient struct {
-	addReactionCalled bool
-	lastOwner         string
-	lastRepo          string
-	lastNumber        int
-	lastReaction      string
+	reactions []reactionCall
+	comments  []commentCall
+}
+
+type reactionCall struct {
+	owner, repo string
+	number      int
+	reaction    string
+}
+
+type commentCall struct {
+	owner, repo string
+	number      int
+	body        string
 }
 
 func (m *mockGitHubClient) AddIssueReaction(_ context.Context, owner, repo string, number int, reaction string) error {
-	m.addReactionCalled = true
-	m.lastOwner = owner
-	m.lastRepo = repo
-	m.lastNumber = number
-	m.lastReaction = reaction
+	m.reactions = append(m.reactions, reactionCall{owner, repo, number, reaction})
+	return nil
+}
+
+func (m *mockGitHubClient) AddIssueComment(_ context.Context, owner, repo string, number int, body string) error {
+	m.comments = append(m.comments, commentCall{owner, repo, number, body})
 	return nil
 }
 
@@ -33,7 +43,7 @@ type mockClientFactory struct {
 	client *mockGitHubClient
 }
 
-func (f *mockClientFactory) NewClient(_ context.Context, _ int64) (githubapp.IssueReactor, error) {
+func (f *mockClientFactory) NewClient(_ context.Context, _ int64) (githubapp.GitHubClient, error) {
 	return f.client, nil
 }
 
@@ -82,20 +92,31 @@ func TestOnPullRequestOpenedWithClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !mockClient.addReactionCalled {
-		t.Error("expected AddIssueReaction to be called")
+	// Verify acknowledge step: eyes reaction was added
+	if len(mockClient.reactions) != 1 {
+		t.Fatalf("expected 1 reaction, got %d", len(mockClient.reactions))
 	}
-	if mockClient.lastOwner != "example" {
-		t.Errorf("expected owner 'example', got '%s'", mockClient.lastOwner)
+	r := mockClient.reactions[0]
+	if r.owner != "example" {
+		t.Errorf("expected owner 'example', got '%s'", r.owner)
 	}
-	if mockClient.lastRepo != "repo" {
-		t.Errorf("expected repo 'repo', got '%s'", mockClient.lastRepo)
+	if r.repo != "repo" {
+		t.Errorf("expected repo 'repo', got '%s'", r.repo)
 	}
-	if mockClient.lastNumber != 42 {
-		t.Errorf("expected number 42, got %d", mockClient.lastNumber)
+	if r.number != 42 {
+		t.Errorf("expected number 42, got %d", r.number)
 	}
-	if mockClient.lastReaction != "eyes" {
-		t.Errorf("expected reaction 'eyes', got '%s'", mockClient.lastReaction)
+	if r.reaction != "eyes" {
+		t.Errorf("expected reaction 'eyes', got '%s'", r.reaction)
+	}
+
+	// Verify logs show the complete flow
+	logOutput := buf.String()
+	if !strings.Contains(logOutput, "acknowledging PR") {
+		t.Errorf("expected log to contain 'acknowledging PR', got: %s", logOutput)
+	}
+	if !strings.Contains(logOutput, "processing PR") {
+		t.Errorf("expected log to contain 'processing PR', got: %s", logOutput)
 	}
 }
 

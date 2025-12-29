@@ -30,7 +30,7 @@ func NewClientFactory(cfg ClientFactoryConfig) *DefaultClientFactory {
 }
 
 // NewClient creates a GitHub API client for the given installation.
-func (f *DefaultClientFactory) NewClient(ctx context.Context, installationID int64) (IssueReactor, error) {
+func (f *DefaultClientFactory) NewClient(ctx context.Context, installationID int64) (GitHubClient, error) {
 	token, err := f.getInstallationToken(ctx, installationID)
 	if err != nil {
 		return nil, fmt.Errorf("get installation token: %w", err)

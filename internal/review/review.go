@@ -19,7 +19,7 @@ type PullRequest struct {
 
 // ClientFactory creates GitHub API clients for installations.
 type ClientFactory interface {
-	NewClient(ctx context.Context, installationID int64) (githubapp.IssueReactor, error)
+	NewClient(ctx context.Context, installationID int64) (githubapp.GitHubClient, error)
 }
 
 // Reviewer defines the interface for handling pull request reviews.
@@ -44,12 +44,15 @@ func NewService(logger *log.Logger, clientFactory ClientFactory) *Service {
 }
 
 // OnPullRequestOpened handles the event when a new pull request is created.
-// This is the entry point for triggering automated code reviews.
+// Flow:
+//  1. Acknowledge receipt with 👀 reaction
+//  2. Process the pull request (review, analysis, etc.)
+//  3. Post results (comments, status, etc.)
 func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error {
 	s.logger.Printf("review: pull request opened repo=%s number=%d", pr.RepoName, pr.Number)
 
 	if s.clientFactory == nil {
-		s.logger.Printf("review: no client factory configured, skipping comment")
+		s.logger.Printf("review: no client factory configured, skipping")
 		return nil
 	}
 
@@ -65,12 +68,45 @@ func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error
 		return err
 	}
 
-	// Add 👀 (eyes) reaction to indicate the hook was triggered
-	if err := client.AddIssueReaction(ctx, owner, repo, pr.Number, "eyes"); err != nil {
-		s.logger.Printf("review: failed to add reaction: %v", err)
+	// Step 1: Acknowledge - Add 👀 reaction to show "request received"
+	if err := s.acknowledge(ctx, client, owner, repo, pr.Number); err != nil {
 		return err
 	}
 
-	s.logger.Printf("review: added eyes reaction to PR repo=%s number=%d", pr.RepoName, pr.Number)
+	// Step 2: Process - Execute the actual review logic
+	if err := s.process(ctx, client, owner, repo, pr.Number); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// acknowledge adds 👀 (eyes) reaction to indicate the request was received.
+func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int) error {
+	s.logger.Printf("review: acknowledging PR repo=%s/%s number=%d", owner, repo, number)
+
+	if err := client.AddIssueReaction(ctx, owner, repo, number, "eyes"); err != nil {
+		s.logger.Printf("review: failed to add eyes reaction: %v", err)
+		return err
+	}
+
+	s.logger.Printf("review: acknowledged PR with eyes reaction")
+	return nil
+}
+
+// process executes the main review logic for the pull request.
+// This is where the actual analysis, review, or automation happens.
+func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int) error {
+	s.logger.Printf("review: processing PR repo=%s/%s number=%d", owner, repo, number)
+
+	// TODO: Implement actual review logic here
+	// Examples:
+	// - Fetch PR diff and analyze code changes
+	// - Run automated code review with AI
+	// - Check for coding standards violations
+	// - Validate PR description and title
+	// - Post review comments with suggestions
+
+	s.logger.Printf("review: processing complete for PR repo=%s/%s number=%d", owner, repo, number)
 	return nil
 }

@@ -9,9 +9,13 @@ import (
 	"github.com/google/go-github/v80/github"
 )
 
-// IssueReactor defines the interface for adding reactions to issues/PRs.
-type IssueReactor interface {
+// GitHubClient defines the interface for GitHub API operations.
+// This interface provides methods needed for PR review automation.
+type GitHubClient interface {
+	// AddIssueReaction adds a reaction to an issue or pull request.
 	AddIssueReaction(ctx context.Context, owner, repo string, number int, reaction string) error
+	// AddIssueComment posts a comment on an issue or pull request.
+	AddIssueComment(ctx context.Context, owner, repo string, number int, body string) error
 }
 
 // Client provides GitHub API operations for the application.
@@ -44,6 +48,22 @@ func (c *Client) AddIssueReaction(ctx context.Context, owner, repo string, numbe
 	_, _, err := c.gh.Reactions.CreateIssueReaction(ctx, owner, repo, number, reaction)
 	if err != nil {
 		return fmt.Errorf("create reaction: %w", err)
+	}
+	return nil
+}
+
+// AddIssueComment posts a comment on an issue or pull request.
+// Parameters:
+//   - ctx: context for cancellation
+//   - owner: repository owner
+//   - repo: repository name
+//   - number: issue or PR number
+//   - body: comment body text
+func (c *Client) AddIssueComment(ctx context.Context, owner, repo string, number int, body string) error {
+	comment := &github.IssueComment{Body: github.Ptr(body)}
+	_, _, err := c.gh.Issues.CreateComment(ctx, owner, repo, number, comment)
+	if err != nil {
+		return fmt.Errorf("create comment: %w", err)
 	}
 	return nil
 }
