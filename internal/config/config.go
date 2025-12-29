@@ -25,15 +25,19 @@ type Config struct {
 
 	// AI review configuration
 	PromptTemplate string // Prompt template name (default: pr-review)
+
+	// Issue response configuration
+	IssueTriggerPrefix string // Comment prefix to trigger AI response (default: @moribito)
 }
 
 const (
-	defaultAddr             = ":8080"
-	defaultGitHubAPIBaseURL = "https://api.github.com"
-	defaultWebhookPath      = "/webhook"
-	defaultOpenCodeHost     = "127.0.0.1"
-	defaultOpenCodePort     = 4096
-	defaultPromptTemplate   = "pr-review"
+	defaultAddr               = ":8080"
+	defaultGitHubAPIBaseURL   = "https://api.github.com"
+	defaultWebhookPath        = "/webhook"
+	defaultOpenCodeHost       = "127.0.0.1"
+	defaultOpenCodePort       = 4096
+	defaultPromptTemplate     = "pr-review"
+	defaultIssueTriggerPrefix = "@moribito"
 )
 
 // Load reads configuration from environment variables.
@@ -52,15 +56,17 @@ const (
 //   - OPENCODE_PORT: OpenCode server port (default: 4096)
 //   - PROMPT_TEMPLATE: prompt template name (default: "pr-review")
 //     Available templates: pr-review, pr-review-concise, pr-review-ja, pr-review-security
+//   - ISSUE_TRIGGER_PREFIX: comment prefix to trigger AI response (default: "@moribito")
 func Load() (Config, error) {
 	cfg := Config{
-		Addr:              envOrDefault("APP_ADDR", defaultAddr),
-		PrivateKeyPath:    strings.TrimSpace(os.Getenv("GITHUB_PRIVATE_KEY_PATH")),
-		WebhookSecret:     strings.TrimSpace(os.Getenv("GITHUB_WEBHOOK_SECRET")),
-		GitHubAPIBaseURL:  envOrDefault("GITHUB_API_BASE_URL", defaultGitHubAPIBaseURL),
-		GitHubWebhookPath: envOrDefault("GITHUB_WEBHOOK_PATH", defaultWebhookPath),
-		OpenCodeHost:      envOrDefault("OPENCODE_HOST", defaultOpenCodeHost),
-		PromptTemplate:    envOrDefault("PROMPT_TEMPLATE", defaultPromptTemplate),
+		Addr:               envOrDefault("APP_ADDR", defaultAddr),
+		PrivateKeyPath:     strings.TrimSpace(os.Getenv("GITHUB_PRIVATE_KEY_PATH")),
+		WebhookSecret:      strings.TrimSpace(os.Getenv("GITHUB_WEBHOOK_SECRET")),
+		GitHubAPIBaseURL:   envOrDefault("GITHUB_API_BASE_URL", defaultGitHubAPIBaseURL),
+		GitHubWebhookPath:  envOrDefault("GITHUB_WEBHOOK_PATH", defaultWebhookPath),
+		OpenCodeHost:       envOrDefault("OPENCODE_HOST", defaultOpenCodeHost),
+		PromptTemplate:     envOrDefault("PROMPT_TEMPLATE", defaultPromptTemplate),
+		IssueTriggerPrefix: envOrDefault("ISSUE_TRIGGER_PREFIX", defaultIssueTriggerPrefix),
 	}
 
 	var err error

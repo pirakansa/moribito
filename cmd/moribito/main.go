@@ -167,5 +167,11 @@ func createIssueService(cfg config.Config, logger *log.Logger, factory *githubap
 		opts = append(opts, issue.WithPromptTemplate(cfg.PromptTemplate))
 	}
 
+	// Set custom trigger prefix if configured
+	if cfg.IssueTriggerPrefix != "" {
+		opts = append(opts, issue.WithTriggerPrefix(cfg.IssueTriggerPrefix))
+		logger.Printf("issue: using trigger prefix %q", cfg.IssueTriggerPrefix)
+	}
+
 	return issue.NewService(logger, factory, opts...)
 }
