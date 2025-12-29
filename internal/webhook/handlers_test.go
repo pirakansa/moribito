@@ -5,7 +5,21 @@ import (
 	"context"
 	"log"
 	"testing"
+
+	"github.com/pirakansa/moribito/internal/review"
 )
+
+// mockReviewer is a test double for the review.Reviewer interface.
+type mockReviewer struct {
+	called bool
+	pr     review.PullRequest
+}
+
+func (m *mockReviewer) OnPullRequestOpened(_ context.Context, pr review.PullRequest) error {
+	m.called = true
+	m.pr = pr
+	return nil
+}
 
 func TestHandleInstallationInvalidJSON(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
@@ -41,7 +55,7 @@ func TestHandleInstallationFixture(t *testing.T) {
 
 func TestHandlePullRequest(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandlePullRequest(logger, nil)
+	handler := HandlePullRequest(logger, nil, nil)
 	body, err := readFixture("pull_request.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
@@ -49,6 +63,21 @@ func TestHandlePullRequest(t *testing.T) {
 	if err := handler(context.Background(), "pull_request", "d1", body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+}
+
+func TestHandlePullRequestOpened(t *testing.T) {
+	logger := log.New(&bytes.Buffer{}, "test: ", 0)
+	reviewer := &mockReviewer{}
+	handler := HandlePullRequest(logger, nil, reviewer)
+	body, err := readFixture("pull_request.json")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+	if err := handler(context.Background(), "pull_request", "d1", body); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Note: With nil submitter, the job is not enqueued, so reviewer is not called.
+	// This test verifies the handler doesn't error with a reviewer provided.
 }
 
 func TestHandleIssueComment(t *testing.T) {

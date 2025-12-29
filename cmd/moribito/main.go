@@ -14,6 +14,7 @@ import (
 	"github.com/pirakansa/moribito/internal/config"
 	"github.com/pirakansa/moribito/internal/githubapp"
 	"github.com/pirakansa/moribito/internal/queue"
+	"github.com/pirakansa/moribito/internal/review"
 	"github.com/pirakansa/moribito/internal/server"
 )
 
@@ -48,7 +49,16 @@ func run() error {
 	defer stop()
 	jobQueue.Start(ctx, 2)
 
-	srv := server.New(cfg, logger, jobQueue)
+	// Create GitHub client factory for the review service
+	clientFactory := githubapp.NewClientFactory(githubapp.ClientFactoryConfig{
+		AppID:          cfg.AppID,
+		PrivateKeyPath: cfg.PrivateKeyPath,
+		BaseURL:        cfg.GitHubAPIBaseURL,
+		HTTPClient:     &http.Client{Timeout: 30 * time.Second},
+	})
+
+	reviewer := review.NewService(logger, clientFactory)
+	srv := server.New(cfg, logger, jobQueue, reviewer)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           srv.Handler(),
