@@ -13,6 +13,7 @@ import (
 
 	"github.com/pirakansa/moribito/internal/config"
 	"github.com/pirakansa/moribito/internal/githubapp"
+	"github.com/pirakansa/moribito/internal/opencode"
 	"github.com/pirakansa/moribito/internal/queue"
 	"github.com/pirakansa/moribito/internal/review"
 	"github.com/pirakansa/moribito/internal/server"
@@ -57,7 +58,10 @@ func run() error {
 		HTTPClient:     &http.Client{Timeout: 30 * time.Second},
 	})
 
-	reviewer := review.NewService(logger, clientFactory)
+	// Create OpenCode client for AI-powered reviews (optional)
+	reviewOpts := createOpenCodeOptions(cfg, logger)
+
+	reviewer := review.NewService(logger, clientFactory, reviewOpts...)
 	srv := server.New(cfg, logger, jobQueue, reviewer)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
@@ -110,5 +114,25 @@ func printInstallationToken(cfg config.Config) error {
 	}
 
 	fmt.Println(token.Token)
+	return nil
+}
+
+// createOpenCodeOptions creates review service options for OpenCode integration.
+// Returns empty options if OpenCode is not configured or unavailable.
+func createOpenCodeOptions(cfg config.Config, logger *log.Logger) []review.ServiceOption {
+	// Create OpenCode client
+	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
+
+	// Check if OpenCode server is available
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if ocClient.IsHealthy(ctx) {
+		health, _ := ocClient.Health(ctx)
+		logger.Printf("opencode: connected to %s (version: %s)", ocClient.BaseURL(), health.Version)
+		return []review.ServiceOption{review.WithOpenCodeClient(ocClient)}
+	}
+
+	logger.Printf("opencode: server not available at %s, AI review disabled", ocClient.BaseURL())
 	return nil
 }
