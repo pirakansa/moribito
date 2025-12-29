@@ -12,6 +12,7 @@ import (
 
 	"github.com/pirakansa/moribito/internal/config"
 	"github.com/pirakansa/moribito/internal/githubapp"
+	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/review"
 	"github.com/pirakansa/moribito/internal/webhook"
 )
@@ -26,11 +27,11 @@ type Server struct {
 }
 
 // New creates a Server with the given configuration and dependencies.
-func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, reviewer review.Reviewer) *Server {
+func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, reviewer review.Reviewer, issueService *issue.Service) *Server {
 	return &Server{
 		cfg:     cfg,
 		logger:  logger,
-		handler: webhook.NewRouter(logger, submitter, reviewer),
+		handler: webhook.NewRouter(logger, submitter, reviewer, issueService),
 	}
 }
 

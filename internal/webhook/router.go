@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/review"
 )
 
@@ -32,7 +33,7 @@ type Router struct {
 //   - pull_request: PR opened, closed, synchronized, etc.
 //   - issue_comment: comments on issues and PRs
 //   - check_run: CI check status updates
-func NewRouter(logger *log.Logger, submitter Submitter, reviewer review.Reviewer) *Router {
+func NewRouter(logger *log.Logger, submitter Submitter, reviewer review.Reviewer, issueService *issue.Service) *Router {
 	r := &Router{
 		logger:   logger,
 		handlers: make(map[string]Handler),
@@ -42,7 +43,7 @@ func NewRouter(logger *log.Logger, submitter Submitter, reviewer review.Reviewer
 	r.Register("installation", HandleInstallation(logger, submitter))
 	r.Register("installation_repositories", HandleInstallationRepositories(logger, submitter))
 	r.Register("pull_request", HandlePullRequest(logger, submitter, reviewer))
-	r.Register("issue_comment", HandleIssueComment(logger, submitter))
+	r.Register("issue_comment", HandleIssueComment(logger, submitter, issueService))
 	r.Register("check_run", HandleCheckRun(logger, submitter))
 
 	return r

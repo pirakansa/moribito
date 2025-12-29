@@ -81,6 +81,40 @@ func TestBuildPRReviewPrompt(t *testing.T) {
 	}
 }
 
+func TestBuildIssueResponsePrompt(t *testing.T) {
+	b := NewBuilder(WithTemplate(DefaultIssueResponseTemplate))
+	ctx := IssueContext{
+		Title:         "Bug Report",
+		Number:        42,
+		Author:        "reporter",
+		Body:          "Something is broken",
+		URL:           "https://github.com/org/repo/issues/42",
+		Comment:       "Can you help me fix this?",
+		CommentAuthor: "helper",
+		CommentID:     123,
+	}
+
+	prompt, err := b.BuildIssueResponsePrompt(ctx)
+	if err != nil {
+		t.Fatalf("BuildIssueResponsePrompt failed: %v", err)
+	}
+
+	checks := []string{
+		"Bug Report",
+		"#42",
+		"@reporter",
+		"Something is broken",
+		"Can you help me fix this?",
+		"@helper",
+	}
+
+	for _, check := range checks {
+		if !strings.Contains(prompt, check) {
+			t.Errorf("prompt should contain %q", check)
+		}
+	}
+}
+
 func TestBuildPRReviewPromptTruncation(t *testing.T) {
 	b := NewBuilder(WithMaxDiffLength(20))
 	ctx := PRReviewContext{
@@ -206,7 +240,7 @@ func TestQuickBuildPRReviewWithTemplate(t *testing.T) {
 }
 
 func TestAllBuiltinTemplatesAreValid(t *testing.T) {
-	ctx := PRReviewContext{
+	prCtx := PRReviewContext{
 		Title: "Test PR",
 		Body:  "Test description",
 		Head:  "feature",
@@ -215,15 +249,38 @@ func TestAllBuiltinTemplatesAreValid(t *testing.T) {
 		Diff:  "+test",
 	}
 
+	issueCtx := IssueContext{
+		Title:         "Test Issue",
+		Number:        42,
+		Author:        "testuser",
+		Body:          "Issue description",
+		URL:           "https://example.com/issue/42",
+		Comment:       "Help me!",
+		CommentAuthor: "commenter",
+		CommentID:     123,
+	}
+
 	for _, tmpl := range BuiltinTemplates() {
 		t.Run(tmpl.Name, func(t *testing.T) {
 			b := NewBuilder(WithTemplate(tmpl))
-			prompt, err := b.BuildPRReviewPrompt(ctx)
-			if err != nil {
-				t.Errorf("template %s failed to build: %v", tmpl.Name, err)
-			}
-			if prompt == "" {
-				t.Errorf("template %s produced empty prompt", tmpl.Name)
+
+			// Use appropriate context based on template type
+			if isIssueTemplate(tmpl.Name) {
+				prompt, err := b.BuildIssueResponsePrompt(issueCtx)
+				if err != nil {
+					t.Errorf("template %s failed to build: %v", tmpl.Name, err)
+				}
+				if prompt == "" {
+					t.Errorf("template %s produced empty prompt", tmpl.Name)
+				}
+			} else {
+				prompt, err := b.BuildPRReviewPrompt(prCtx)
+				if err != nil {
+					t.Errorf("template %s failed to build: %v", tmpl.Name, err)
+				}
+				if prompt == "" {
+					t.Errorf("template %s produced empty prompt", tmpl.Name)
+				}
 			}
 		})
 	}

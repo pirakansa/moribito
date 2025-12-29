@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/queue"
 	"github.com/pirakansa/moribito/internal/review"
 )
@@ -45,7 +46,10 @@ type (
 
 	// issueCommentPayload represents issue comment events.
 	issueCommentPayload struct {
-		Action     string         `json:"action"`
+		Action       string `json:"action"`
+		Installation struct {
+			ID int64 `json:"id"`
+		} `json:"installation"`
 		Issue      issueInfo      `json:"issue"`
 		Comment    commentInfo    `json:"comment"`
 		Repository repositoryInfo `json:"repository"`
@@ -65,12 +69,22 @@ type (
 
 	// issueInfo holds issue metadata.
 	issueInfo struct {
-		Number int `json:"number"`
+		Number int    `json:"number"`
+		Title  string `json:"title"`
+		Body   string `json:"body"`
+		User   struct {
+			Login string `json:"login"`
+		} `json:"user"`
+		HTMLURL string `json:"html_url"`
 	}
 
 	// commentInfo holds comment metadata.
 	commentInfo struct {
-		ID int64 `json:"id"`
+		ID   int64  `json:"id"`
+		Body string `json:"body"`
+		User struct {
+			Login string `json:"login"`
+		} `json:"user"`
 	}
 
 	// checkRunInfo holds check run metadata.
@@ -171,7 +185,9 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter, reviewer review.
 
 // HandleIssueComment returns a handler for issue comment events.
 // Actions include: created, edited, deleted.
-func HandleIssueComment(logger *log.Logger, submitter Submitter) Handler {
+// When issueService is provided and action is "created", the handler
+// processes the comment for AI response.
+func HandleIssueComment(logger *log.Logger, submitter Submitter, issueService *issue.Service) Handler {
 	return func(ctx context.Context, event, delivery string, body []byte) error {
 		payload, err := decodeJSON[issueCommentPayload](body)
 		if err != nil {
@@ -181,6 +197,37 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter) Handler {
 		logger.Printf("event=%s delivery=%s action=%s repo=%s issue=%d comment_id=%d",
 			event, delivery, payload.Action, payload.Repository.FullName,
 			payload.Issue.Number, payload.Comment.ID)
+
+		// Handle comment created event for AI response
+		if payload.Action == "created" && issueService != nil {
+			evt := issue.CommentEvent{
+				InstallationID: payload.Installation.ID,
+				IssueNumber:    payload.Issue.Number,
+				IssueTitle:     payload.Issue.Title,
+				IssueBody:      payload.Issue.Body,
+				IssueAuthor:    payload.Issue.User.Login,
+				IssueURL:       payload.Issue.HTMLURL,
+				CommentID:      payload.Comment.ID,
+				CommentBody:    payload.Comment.Body,
+				CommentAuthor:  payload.Comment.User.Login,
+			}
+			// Parse owner and repo from full name
+			owner, repo, perr := parseRepoFullName(payload.Repository.FullName)
+			if perr != nil {
+				return fmt.Errorf("parse repo name: %w", perr)
+			}
+			evt.Owner = owner
+			evt.Repo = repo
+
+			return enqueueJob(ctx, logger, submitter, queue.Job{
+				Name: "issue_comment_response",
+				Run: func(jobCtx context.Context) error {
+					logger.Printf("job=issue_comment_response repo=%s issue=%d",
+						payload.Repository.FullName, payload.Issue.Number)
+					return issueService.OnIssueComment(jobCtx, evt)
+				},
+			})
+		}
 
 		return enqueueJob(ctx, logger, submitter, queue.Job{
 			Name: "issue_comment",
@@ -192,6 +239,16 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter) Handler {
 			},
 		})
 	}
+}
+
+// parseRepoFullName splits "owner/repo" into owner and repo parts.
+func parseRepoFullName(fullName string) (owner, repo string, err error) {
+	for i := 0; i < len(fullName); i++ {
+		if fullName[i] == '/' {
+			return fullName[:i], fullName[i+1:], nil
+		}
+	}
+	return "", "", fmt.Errorf("invalid repo full name: %s", fullName)
 }
 
 // HandleCheckRun returns a handler for check run events.

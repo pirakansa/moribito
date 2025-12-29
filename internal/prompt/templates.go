@@ -108,6 +108,88 @@ Focus exclusively on:
 If no security issues found, state "No security concerns identified."
 Otherwise, list each issue with severity (Critical/High/Medium/Low).`,
 	}
+
+	// DefaultIssueResponseTemplate is the standard template for issue comment responses.
+	DefaultIssueResponseTemplate = Template{
+		Name:        "issue-response",
+		Description: "Standard issue comment response",
+		Content: `You are a helpful assistant for a GitHub repository. Please respond to the following issue comment.
+
+## Issue Information
+- **Title**: {{.Title}}
+- **Number**: #{{.Number}}
+- **Author**: @{{.Author}}
+- **URL**: {{.URL}}
+
+## Issue Description
+{{.Body}}
+
+## Comment to Respond To
+**@{{.CommentAuthor}}** wrote:
+{{.Comment}}
+
+## Instructions
+Please provide a helpful, friendly, and accurate response. If the question is about code:
+1. Provide clear explanations
+2. Include code examples when helpful
+3. Reference documentation if applicable
+4. Ask clarifying questions if the request is unclear
+
+Keep your response concise and actionable.`,
+	}
+
+	// JapaneseIssueResponseTemplate provides issue responses in Japanese.
+	JapaneseIssueResponseTemplate = Template{
+		Name:        "issue-response-ja",
+		Description: "Issue comment response in Japanese",
+		Content: `あなたはGitHubリポジトリのヘルプアシスタントです。以下のIssueコメントに返答してください。
+
+## Issue情報
+- **タイトル**: {{.Title}}
+- **番号**: #{{.Number}}
+- **作成者**: @{{.Author}}
+- **URL**: {{.URL}}
+
+## Issue本文
+{{.Body}}
+
+## 返答対象のコメント
+**@{{.CommentAuthor}}** さんのコメント:
+{{.Comment}}
+
+## 指示
+親切で正確な返答を日本語で提供してください。コードに関する質問の場合：
+1. わかりやすい説明を心がける
+2. 必要に応じてコード例を提示
+3. 関連ドキュメントがあれば参照
+4. 不明点があれば確認の質問をする
+
+簡潔で実用的な返答を心がけてください。`,
+	}
+
+	// TechnicalIssueTemplate focuses on technical problem solving.
+	TechnicalIssueTemplate = Template{
+		Name:        "issue-technical",
+		Description: "Technical issue analysis and troubleshooting",
+		Content: `Analyze this technical issue and provide troubleshooting guidance.
+
+## Issue: {{.Title}} (#{{.Number}})
+
+## Description
+{{.Body}}
+
+## User's Comment
+@{{.CommentAuthor}}: {{.Comment}}
+
+## Analysis Instructions
+1. Identify the likely root cause
+2. List potential solutions in order of likelihood
+3. Provide step-by-step debugging instructions
+4. Mention any relevant logs or diagnostics to check
+5. Suggest preventive measures if applicable
+
+Format your response with clear sections and code blocks where helpful.`,
+	}
 )
 
 // CommentFooterTemplate is the footer added to AI review comments.
@@ -122,6 +204,9 @@ func BuiltinTemplates() []Template {
 		ConcisePRReviewTemplate,
 		JapanesePRReviewTemplate,
 		SecurityFocusedTemplate,
+		DefaultIssueResponseTemplate,
+		JapaneseIssueResponseTemplate,
+		TechnicalIssueTemplate,
 	}
 }
 
@@ -134,4 +219,15 @@ func GetTemplateByName(name string) Template {
 		}
 	}
 	return DefaultPRReviewTemplate
+}
+
+// GetIssueTemplateByName returns an issue template by name.
+// Returns the default issue template if not found.
+func GetIssueTemplateByName(name string) Template {
+	for _, t := range BuiltinTemplates() {
+		if t.Name == name {
+			return t
+		}
+	}
+	return DefaultIssueResponseTemplate
 }

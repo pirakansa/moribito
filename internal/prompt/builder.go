@@ -16,6 +16,18 @@ type PRReviewContext struct {
 	Diff  string // PR diff content
 }
 
+// IssueContext holds the data for issue response prompt templates.
+type IssueContext struct {
+	Title         string // Issue title
+	Number        int    // Issue number
+	Author        string // Issue author
+	Body          string // Issue description
+	URL           string // Issue URL
+	Comment       string // Comment content to respond to
+	CommentAuthor string // Comment author
+	CommentID     int64  // Comment ID
+}
+
 // Builder constructs prompts from templates.
 type Builder struct {
 	template     Template
@@ -92,6 +104,42 @@ func (b *Builder) FormatReviewComment(review string) string {
 	}
 
 	return fmt.Sprintf("## 🤖 AI Code Review\n\n%s\n%s", review, footer)
+}
+
+// BuildIssueResponsePrompt constructs an issue response prompt from the context.
+func (b *Builder) BuildIssueResponsePrompt(ctx IssueContext) (string, error) {
+	// Use issue template if set, otherwise use default issue template
+	tmplToUse := b.template
+	if !isIssueTemplate(b.template.Name) {
+		tmplToUse = DefaultIssueResponseTemplate
+	}
+
+	tmpl, err := template.New(tmplToUse.Name).Parse(tmplToUse.Content)
+	if err != nil {
+		return "", fmt.Errorf("parse template: %w", err)
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, ctx); err != nil {
+		return "", fmt.Errorf("execute template: %w", err)
+	}
+
+	return buf.String(), nil
+}
+
+// FormatIssueResponse wraps an AI response in a formatted comment.
+func (b *Builder) FormatIssueResponse(response string) string {
+	footer := CommentFooterTemplate
+	if b.customFooter != "" {
+		footer = b.customFooter
+	}
+
+	return fmt.Sprintf("%s\n%s", response, footer)
+}
+
+// isIssueTemplate checks if the template name is an issue template.
+func isIssueTemplate(name string) bool {
+	return name == "issue-response" || name == "issue-response-ja" || name == "issue-technical"
 }
 
 // truncateText limits text length with a truncation marker.

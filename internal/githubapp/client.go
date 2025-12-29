@@ -16,10 +16,14 @@ type GitHubClient interface {
 	AddIssueReaction(ctx context.Context, owner, repo string, number int, reaction string) error
 	// AddIssueComment posts a comment on an issue or pull request.
 	AddIssueComment(ctx context.Context, owner, repo string, number int, body string) error
+	// AddCommentReaction adds a reaction to a comment.
+	AddCommentReaction(ctx context.Context, owner, repo string, commentID int64, reaction string) error
 	// GetPullRequestDiff returns the diff of a pull request in unified diff format.
 	GetPullRequestDiff(ctx context.Context, owner, repo string, number int) (string, error)
 	// GetPullRequest returns pull request details.
 	GetPullRequest(ctx context.Context, owner, repo string, number int) (*PullRequestInfo, error)
+	// GetIssue returns issue details.
+	GetIssue(ctx context.Context, owner, repo string, number int) (*IssueInfo, error)
 }
 
 // PullRequestInfo holds essential pull request information.
@@ -28,6 +32,15 @@ type PullRequestInfo struct {
 	Body    string
 	Head    string // Head branch name
 	Base    string // Base branch name
+	HTMLURL string
+}
+
+// IssueInfo holds essential issue information.
+type IssueInfo struct {
+	Number  int
+	Title   string
+	Body    string
+	Author  string
 	HTMLURL string
 }
 
@@ -81,6 +94,22 @@ func (c *Client) AddIssueComment(ctx context.Context, owner, repo string, number
 	return nil
 }
 
+// AddCommentReaction adds a reaction to a comment.
+// Supported reactions: +1, -1, laugh, confused, heart, hooray, rocket, eyes
+// Parameters:
+//   - ctx: context for cancellation
+//   - owner: repository owner
+//   - repo: repository name
+//   - commentID: comment ID
+//   - reaction: reaction content (e.g., "eyes")
+func (c *Client) AddCommentReaction(ctx context.Context, owner, repo string, commentID int64, reaction string) error {
+	_, _, err := c.gh.Reactions.CreateIssueCommentReaction(ctx, owner, repo, commentID, reaction)
+	if err != nil {
+		return fmt.Errorf("create comment reaction: %w", err)
+	}
+	return nil
+}
+
 // GetPullRequestDiff returns the diff of a pull request in unified diff format.
 // Parameters:
 //   - ctx: context for cancellation
@@ -112,6 +141,26 @@ func (c *Client) GetPullRequest(ctx context.Context, owner, repo string, number 
 		Head:    pr.GetHead().GetRef(),
 		Base:    pr.GetBase().GetRef(),
 		HTMLURL: pr.GetHTMLURL(),
+	}, nil
+}
+
+// GetIssue returns issue details.
+// Parameters:
+//   - ctx: context for cancellation
+//   - owner: repository owner
+//   - repo: repository name
+//   - number: issue number
+func (c *Client) GetIssue(ctx context.Context, owner, repo string, number int) (*IssueInfo, error) {
+	issue, _, err := c.gh.Issues.Get(ctx, owner, repo, number)
+	if err != nil {
+		return nil, fmt.Errorf("get issue: %w", err)
+	}
+	return &IssueInfo{
+		Number:  issue.GetNumber(),
+		Title:   issue.GetTitle(),
+		Body:    issue.GetBody(),
+		Author:  issue.GetUser().GetLogin(),
+		HTMLURL: issue.GetHTMLURL(),
 	}, nil
 }
 

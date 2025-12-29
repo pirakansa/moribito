@@ -41,6 +41,10 @@ func (m *mockGitHubClient) AddIssueComment(_ context.Context, owner, repo string
 	return nil
 }
 
+func (m *mockGitHubClient) AddCommentReaction(_ context.Context, _, _ string, _ int64, _ string) error {
+	return nil
+}
+
 func (m *mockGitHubClient) GetPullRequestDiff(_ context.Context, _, _ string, _ int) (string, error) {
 	return m.diff, nil
 }
@@ -55,6 +59,16 @@ func (m *mockGitHubClient) GetPullRequest(_ context.Context, _, _ string, _ int)
 		}, nil
 	}
 	return m.prInfo, nil
+}
+
+func (m *mockGitHubClient) GetIssue(_ context.Context, _, _ string, _ int) (*githubapp.IssueInfo, error) {
+	return &githubapp.IssueInfo{
+		Number:  1,
+		Title:   "Test Issue",
+		Body:    "Test issue body",
+		Author:  "testuser",
+		HTMLURL: "https://github.com/test/repo/issues/1",
+	}, nil
 }
 
 // mockClientFactory is a test double for ClientFactory.

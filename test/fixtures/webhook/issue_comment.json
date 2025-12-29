@@ -1,10 +1,23 @@
 {
   "action": "created",
+  "installation": {
+    "id": 123456
+  },
   "issue": {
-    "number": 7
+    "number": 7,
+    "title": "Test Issue",
+    "body": "This is a test issue",
+    "user": {
+      "login": "issueauthor"
+    },
+    "html_url": "https://github.com/example/repo/issues/7"
   },
   "comment": {
-    "id": 9001
+    "id": 9001,
+    "body": "@moribito help me with this",
+    "user": {
+      "login": "commentauthor"
+    }
   },
   "repository": {
     "full_name": "example/repo"

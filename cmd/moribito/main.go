@@ -13,6 +13,7 @@ import (
 
 	"github.com/pirakansa/moribito/internal/config"
 	"github.com/pirakansa/moribito/internal/githubapp"
+	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/opencode"
 	"github.com/pirakansa/moribito/internal/queue"
 	"github.com/pirakansa/moribito/internal/review"
@@ -59,10 +60,14 @@ func run() error {
 	})
 
 	// Create OpenCode client for AI-powered reviews (optional)
-	reviewOpts := createOpenCodeOptions(cfg, logger)
+	reviewOpts, ocClient := createOpenCodeOptions(cfg, logger)
 
 	reviewer := review.NewService(logger, clientFactory, reviewOpts...)
-	srv := server.New(cfg, logger, jobQueue, reviewer)
+
+	// Create Issue service for AI-powered issue responses
+	issueService := createIssueService(cfg, logger, clientFactory, ocClient)
+
+	srv := server.New(cfg, logger, jobQueue, reviewer, issueService)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           srv.Handler(),
@@ -118,8 +123,8 @@ func printInstallationToken(cfg config.Config) error {
 }
 
 // createOpenCodeOptions creates review service options for OpenCode integration.
-// Returns empty options if OpenCode is not configured or unavailable.
-func createOpenCodeOptions(cfg config.Config, logger *log.Logger) []review.ServiceOption {
+// Returns options and the OpenCode client (nil if unavailable).
+func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.ServiceOption, *opencode.Client) {
 	var opts []review.ServiceOption
 
 	// Set prompt template if configured
@@ -139,9 +144,28 @@ func createOpenCodeOptions(cfg config.Config, logger *log.Logger) []review.Servi
 		health, _ := ocClient.Health(ctx)
 		logger.Printf("opencode: connected to %s (version: %s)", ocClient.BaseURL(), health.Version)
 		opts = append(opts, review.WithOpenCodeClient(ocClient))
-		return opts
+		return opts, ocClient
 	}
 
-	logger.Printf("opencode: server not available at %s, AI review disabled", ocClient.BaseURL())
-	return opts
+	logger.Printf("opencode: server not available at %s, AI features disabled", ocClient.BaseURL())
+	return opts, nil
+}
+
+// createIssueService creates the issue response service.
+// Returns nil if OpenCode is not available.
+func createIssueService(cfg config.Config, logger *log.Logger, factory *githubapp.DefaultClientFactory, ocClient *opencode.Client) *issue.Service {
+	if ocClient == nil {
+		return nil
+	}
+
+	var opts []issue.ServiceOption
+	opts = append(opts, issue.WithOpenCodeClient(ocClient))
+
+	// Use issue-specific template if prompt template starts with "issue-"
+	// Otherwise, use default issue template
+	if cfg.PromptTemplate != "" && len(cfg.PromptTemplate) > 6 && cfg.PromptTemplate[:6] == "issue-" {
+		opts = append(opts, issue.WithPromptTemplate(cfg.PromptTemplate))
+	}
+
+	return issue.NewService(logger, factory, opts...)
 }
