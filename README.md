@@ -1,5 +1,4 @@
 <p align="center">
-  <!-- ロゴ画像を配置（正方形アイコン推奨） -->
   <img src="./docs/moribito-logo.png" width="320" alt="MORIBITO logo"/>
 </p>
 
@@ -11,157 +10,156 @@
 
 ---
 
-## About M.O.R.I.B.I.T.O.
-**M.O.R.I.B.I.T.O.** is a GitHub App that acts as a repository’s appointed “Trustee Officer.”  
+## About
+
+**M.O.R.I.B.I.T.O.** is a GitHub App that acts as a repository's appointed "Trustee Officer."  
 It monitors activity, supports discussions, assists reviews, and can execute entrusted tasks on your behalf.
 
+Built with Go using `net/http` for webhook handling and `go-github` for GitHub API interactions.
 
-GolangでGitHub Appを作るための雛形です。Webhook受信は`net/http`、GitHub APIの認証とトークン取得は`go-github`を利用します。
+## Features
 
-## Prerequisites
+- **Webhook Processing**: Receives and validates GitHub webhook events
+- **PR Review Automation**: Automatically acknowledges new PRs with 👀 reaction
+- **Async Job Queue**: Background processing for long-running tasks
+- **Extensible Architecture**: Easy to add new event handlers and review logic
+
+## Quick Start
+
+### Prerequisites
 
 - Go 1.21+
+- GitHub App credentials (App ID, Private Key)
 
-## Setup
+### Installation
 
 ```bash
+git clone <repository-url>
+cd moribito
 go mod tidy
-```
-
-## Docs
-
-- `docs/ARCHITECTURE.md`
-- `docs/CONFIG.md`
-- `docs/DEVELOPMENT.md`
-- `docs/OPERATIONS.md`
-
-## Build
-
-```bash
 make build
 ```
 
-## Run
+### Configuration
+
+Set the required environment variables:
 
 ```bash
-go run ./cmd/moribito
+export GITHUB_APP_ID=123
+export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
 ```
 
-起動後は`/healthz`と`/webhook`が利用できます。
-
-## Test
+### Run
 
 ```bash
-make test
+./bin/host/moribito
 ```
 
-## GitHub Appの基本
+The server starts on `:8080` with endpoints:
+- `GET /healthz` - Health check
+- `POST /webhook` - GitHub webhook receiver
 
-- App ID: GitHub Appを識別するIDです。
-- Private Key: JWT署名に使う秘密鍵です（App側で発行）。
-- Installation ID: インストールされた組織/リポジトリを識別します。
-- Webhook Secret: Webhookの署名検証に使います。
-- API Base URL: GitHub Enterprise Server向けに`https://<host>/api/v3`へ変更できます。
+## Environment Variables
 
-## 雛形の狙い（何が入っているか）
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `APP_ADDR` | No | Listen address (default: `:8080`) |
+| `GITHUB_APP_ID` | **Yes** | GitHub App ID for JWT creation |
+| `GITHUB_PRIVATE_KEY_PATH` | **Yes** | Path to App private key (PEM) |
+| `GITHUB_INSTALLATION_ID` | No | Installation ID (for CLI token command) |
+| `GITHUB_WEBHOOK_SECRET` | No | Webhook signature secret |
+| `GITHUB_WEBHOOK_PATH` | No | Webhook endpoint path (default: `/webhook`) |
+| `GITHUB_API_BASE_URL` | No | API URL (default: `https://api.github.com`) |
 
-- Webhook受信: `/webhook`でイベントを受け取り、署名検証を行います。
-- 認証: App ID + Private KeyでJWTを作成し、Installation tokenを取得できます。
-- ルーティング: Webhookイベントごとにハンドラを分離できる構成です。
-- ジョブキュー: 長い処理を非同期化するための簡易キューを持ちます。
-- 拡張ポイント: Issue/PRイベントへの対応やAPI呼び出しを追加しやすくしています。
+## PR Review Flow
 
-## 環境変数
+When a Pull Request is opened, the app follows this flow:
 
 ```
-APP_ADDR=:8080
-GITHUB_WEBHOOK_PATH=/webhook
-GITHUB_APP_ID=123
-GITHUB_INSTALLATION_ID=456
-GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
-GITHUB_WEBHOOK_SECRET=secret
-GITHUB_API_BASE_URL=https://api.github.com
+PR Created → Webhook Received → Acknowledge (👀) → Process Review
 ```
 
-### 使い分けの目安
+1. **Acknowledge**: Adds 👀 (eyes) reaction to show the request was received
+2. **Process**: Executes review logic (extensible for AI review, linting, etc.)
 
-- `GITHUB_APP_ID` / `GITHUB_PRIVATE_KEY_PATH`: **JWT作成**に必須。
-- `GITHUB_INSTALLATION_ID`: **Installation token取得**に必須。
-- `GITHUB_WEBHOOK_SECRET`: **Webhook署名検証**に使用（未設定なら検証をスキップ）。
-- `GITHUB_API_BASE_URL`: **Enterprise Server**のときは必須。
+## Architecture
 
-## ローカル開発の流れ（例）
+```
+cmd/moribito/          # CLI entry point
+internal/
+├── config/            # Environment configuration
+├── githubapp/         # GitHub API client & authentication
+├── queue/             # Background job queue
+├── review/            # PR review service
+├── server/            # HTTP server
+└── webhook/           # Event routing & handlers
+test/fixtures/         # Test data
+```
 
-1. GitHub Appを作成し、Webhook URLを`http://localhost:8080/webhook`に設定します。
-2. `GITHUB_PRIVATE_KEY_PATH`に秘密鍵を保存します。
-3. `go run ./cmd/moribito`で起動します。
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for details.
 
-注: 本リポジトリのWebhook処理は骨組みのみです。イベント内容の処理やAPI呼び出しは今後追加します。
+## Development
 
-## smeeでWebhookをローカルに中継
-
-1. GitHub AppのWebhook URLに`smee.io`のURLを設定します。
-2. smeeクライアントを起動します。
+### Build & Test
 
 ```bash
-npx -p smee-client@1.0.2 smee -u https://smee.io/<your-id> -p 8080 -P /webhook
+make build    # Build binary
+make test     # Run tests
+make lint     # Run linter
 ```
 
-3. アプリを起動します。
+### Local Webhook Testing with smee
+
+1. Create a smee channel at [smee.io](https://smee.io)
+2. Set the smee URL as your GitHub App's Webhook URL
+3. Run the smee client:
 
 ```bash
-go run ./cmd/moribito
+npx smee-client -u https://smee.io/<your-id> -p 8080 -P /webhook
 ```
 
-注: Node 18環境で動かない場合があるため、`smee-client@1.0.2`を指定しています。
+4. Start the app:
 
-## Installation tokenの取得（動作確認）
-
-以下の環境変数を設定し、トークンを表示します。
-
+```bash
+export GITHUB_APP_ID=<your-app-id>
+export GITHUB_PRIVATE_KEY_PATH=<path-to-key.pem>
+./bin/host/moribito
 ```
+
+### Verify Installation Token
+
+```bash
 export GITHUB_APP_ID=123
 export GITHUB_INSTALLATION_ID=456
 export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
-export GITHUB_API_BASE_URL=https://api.github.com
+
+./bin/host/moribito --print-installation-token
 ```
 
-```bash
-go run ./cmd/moribito --print-installation-token
-```
-
-注: これはローカル検証向けの機能です。運用時はログや出力先の扱いに注意してください。
-
-## 認証フロー図（概要）
+## Authentication Flow
 
 ```mermaid
 sequenceDiagram
-    participant GitHub as GitHub
-    participant App as App Server
+    participant GitHub
+    participant App as M.O.R.I.B.I.T.O.
     participant API as GitHub API
 
-    GitHub->>App: Webhook (installation / installation_repositories)
-    App->>App: Installation IDを取得
-    App->>App: App ID + Private KeyでJWT生成
-    App->>API: JWTでInstallation tokenを要求
-    API-->>App: Installation token
-    App->>API: TokenでPR/コメント等のAPI実行
+    GitHub->>App: Webhook (pull_request opened)
+    App->>App: Parse payload, extract Installation ID
+    App->>App: Generate JWT (App ID + Private Key)
+    App->>API: Request Installation Token
+    API-->>App: Installation Token
+    App->>API: Add reaction to PR (👀)
+    App->>App: Execute review logic
 ```
 
-## テスト方針
+## Documentation
 
-- `internal/config`: 環境変数の読み取りとバリデーション
-- `internal/githubapp`: JWT生成、Webhook署名、Installation token取得（go-github利用）、キャッシュ
-- `internal/webhook`: イベントルーティングと基本のパース
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) - System architecture
+- [docs/CONFIG.md](docs/CONFIG.md) - Configuration details
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) - Development guide
+- [docs/OPERATIONS.md](docs/OPERATIONS.md) - Operations guide
 
-### Fixtures
+## License
 
-Webhookのテスト用payloadは`test/fixtures/webhook/`に配置しています。
-イベント追加時は対応するfixtureを追加してください。
-
-## 観測性（ログ）
-
-- `X-GitHub-Delivery` と `X-GitHub-Request-Id` をログに出力します。
-- エラー時も同じIDを出すため、再送判断やトラブルシュートがしやすくなります。
-
-ローカル検証が必要な場合は、`smee`でWebhookを中継し実イベントで挙動確認できます。
+See [LICENSE](LICENSE) file.
