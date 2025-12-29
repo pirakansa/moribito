@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v61/github"
+	"github.com/google/go-github/v80/github"
 )
 
 // InstallationTokenResponse represents GitHub's token response.
