@@ -10,14 +10,21 @@ import (
 	"github.com/google/go-github/v80/github"
 )
 
-// InstallationTokenResponse represents GitHub's token response.
+// InstallationTokenResponse contains the token and expiration from GitHub.
 type InstallationTokenResponse struct {
 	Token     string    `json:"token"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-// FetchInstallationToken requests an installation access token.
-func FetchInstallationToken(ctx context.Context, client *http.Client, baseURL string, appJWT string, installationID int64) (InstallationTokenResponse, error) {
+// FetchInstallationToken requests an installation access token from GitHub.
+// The token allows API calls on behalf of the installation (org/user).
+// Parameters:
+//   - ctx: context for cancellation
+//   - client: HTTP client (with timeouts configured)
+//   - baseURL: GitHub API base URL (empty for github.com)
+//   - appJWT: JWT signed with the App's private key
+//   - installationID: target installation ID
+func FetchInstallationToken(ctx context.Context, client *http.Client, baseURL, appJWT string, installationID int64) (InstallationTokenResponse, error) {
 	if installationID == 0 {
 		return InstallationTokenResponse{}, fmt.Errorf("installation id is required")
 	}

@@ -1,3 +1,5 @@
+// Package config provides configuration loading and validation for the GitHub App.
+// Configuration is read from environment variables.
 package config
 
 import (
@@ -7,15 +9,15 @@ import (
 	"strings"
 )
 
-// Config holds configuration for the GitHub App server.
+// Config holds all configuration values for the GitHub App server.
 type Config struct {
-	Addr              string
-	AppID             int64
-	InstallationID    int64
-	PrivateKeyPath    string
-	WebhookSecret     string
-	GitHubAPIBaseURL  string
-	GitHubWebhookPath string
+	Addr              string // HTTP server listen address
+	AppID             int64  // GitHub App ID
+	InstallationID    int64  // GitHub App Installation ID
+	PrivateKeyPath    string // Path to RSA private key (PEM format)
+	WebhookSecret     string // Webhook signature secret (optional)
+	GitHubAPIBaseURL  string // GitHub API base URL (for Enterprise Server)
+	GitHubWebhookPath string // Webhook endpoint path
 }
 
 const (
@@ -25,6 +27,17 @@ const (
 )
 
 // Load reads configuration from environment variables.
+// Returns partial config even if some optional values are missing;
+// use ValidateForToken or ValidateForWebhook to check required fields.
+//
+// Environment variables:
+//   - APP_ADDR: listen address (default: ":8080")
+//   - GITHUB_APP_ID: GitHub App ID (optional, required for tokens)
+//   - GITHUB_INSTALLATION_ID: installation ID (optional, required for tokens)
+//   - GITHUB_PRIVATE_KEY_PATH: path to private key PEM file
+//   - GITHUB_WEBHOOK_SECRET: webhook signature secret (optional)
+//   - GITHUB_API_BASE_URL: API base URL (default: "https://api.github.com")
+//   - GITHUB_WEBHOOK_PATH: webhook endpoint (default: "/webhook")
 func Load() (Config, error) {
 	cfg := Config{
 		Addr:              envOrDefault("APP_ADDR", defaultAddr),

@@ -8,7 +8,12 @@ import (
 	"strings"
 )
 
-// VerifyWebhookSignature validates GitHub webhook signatures (sha256).
+// VerifyWebhookSignature validates a GitHub webhook signature.
+// GitHub sends signatures in the X-Hub-Signature-256 header.
+// Returns false if:
+//   - secret is empty
+//   - signature doesn't have "sha256=" prefix
+//   - signature doesn't match the expected HMAC
 func VerifyWebhookSignature(secret string, body []byte, signatureHeader string) bool {
 	if strings.TrimSpace(secret) == "" {
 		return false
@@ -29,6 +34,8 @@ func VerifyWebhookSignature(secret string, body []byte, signatureHeader string) 
 	return hmac.Equal(signature, expected)
 }
 
+// DebugWebhookSignature generates the expected signature for debugging.
+// Useful for testing webhook handlers locally.
 func DebugWebhookSignature(secret string, body []byte) string {
 	mac := hmac.New(sha256.New, []byte(secret))
 	_, _ = mac.Write(body)

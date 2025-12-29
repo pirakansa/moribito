@@ -1,3 +1,5 @@
+// Package server provides the HTTP server for the GitHub App.
+// It handles webhook endpoints, health checks, and request validation.
 package server
 
 import (
@@ -13,14 +15,16 @@ import (
 	"github.com/pirakansa/moribito/internal/webhook"
 )
 
-// Server provides HTTP handlers for the GitHub App skeleton.
+// Server provides HTTP handlers for the GitHub App.
+// It manages webhook signature verification, event routing,
+// and health check endpoints.
 type Server struct {
 	cfg     config.Config
 	logger  *log.Logger
 	handler *webhook.Router
 }
 
-// New builds a new Server.
+// New creates a Server with the given configuration and dependencies.
 func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter) *Server {
 	return &Server{
 		cfg:     cfg,
@@ -29,7 +33,10 @@ func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter) *Se
 	}
 }
 
-// Handler returns the HTTP handler for the server.
+// Handler returns an http.Handler with all routes configured.
+// Routes:
+//   - GET /healthz: health check endpoint
+//   - POST <GitHubWebhookPath>: webhook receiver
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", s.handleHealth)
@@ -37,11 +44,15 @@ func (s *Server) Handler() http.Handler {
 	return mux
 }
 
+// handleHealth responds with "ok" for health checks.
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
 }
 
+// handleWebhook processes incoming GitHub webhook events.
+// It validates the request method, verifies the signature (if configured),
+// and dispatches the event to the appropriate handler.
 func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	requestID := requestIDFromHeaders(r)
 	if r.Method != http.MethodPost {
@@ -84,11 +95,15 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte("ok"))
 }
 
-func (s *Server) writeError(w http.ResponseWriter, status int, err error, requestID string, delivery string) {
-	s.logger.Printf("http error status=%d request_id=%s delivery=%s err=%v", status, requestID, delivery, err)
+// writeError logs the error and responds with the appropriate HTTP status.
+func (s *Server) writeError(w http.ResponseWriter, status int, err error, requestID, delivery string) {
+	s.logger.Printf("http error status=%d request_id=%s delivery=%s err=%v",
+		status, requestID, delivery, err)
 	http.Error(w, http.StatusText(status), status)
 }
 
+// requestIDFromHeaders extracts a request ID from common header fields.
+// Falls back to "unknown" if no ID is found.
 func requestIDFromHeaders(r *http.Request) string {
 	if value := strings.TrimSpace(r.Header.Get("X-GitHub-Request-Id")); value != "" {
 		return value

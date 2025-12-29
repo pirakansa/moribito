@@ -1,3 +1,5 @@
+// Package githubapp provides GitHub App authentication utilities.
+// It handles JWT creation for App authentication and installation token management.
 package githubapp
 
 import (
@@ -16,11 +18,18 @@ import (
 )
 
 const (
+	// jwtSkewLeeway accounts for clock skew between servers.
 	jwtSkewLeeway = 60 * time.Second
-	jwtExpiry     = 9 * time.Minute
+	// jwtExpiry is the JWT validity period (GitHub allows up to 10 minutes).
+	jwtExpiry = 9 * time.Minute
 )
 
-// CreateAppJWT builds a signed JWT for GitHub App authentication.
+// CreateAppJWT generates a signed JWT for GitHub App authentication.
+// The JWT is used to authenticate as the App itself (not an installation).
+// Parameters:
+//   - appID: GitHub App ID
+//   - privateKeyPath: path to RSA private key in PEM format
+//   - now: current time (for testing, use time.Now() in production)
 func CreateAppJWT(appID int64, privateKeyPath string, now time.Time) (string, error) {
 	if appID == 0 {
 		return "", fmt.Errorf("app id is required")
@@ -63,6 +72,8 @@ func CreateAppJWT(appID int64, privateKeyPath string, now time.Time) (string, er
 	return unsigned + "." + enc.EncodeToString(signature), nil
 }
 
+// readPrivateKey loads an RSA private key from a PEM file.
+// Supports both PKCS#1 (RSA PRIVATE KEY) and PKCS#8 (PRIVATE KEY) formats.
 func readPrivateKey(path string) (*rsa.PrivateKey, error) {
 	if strings.TrimSpace(path) == "" {
 		return nil, fmt.Errorf("private key path is required")
