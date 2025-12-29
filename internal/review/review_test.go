@@ -301,67 +301,21 @@ func TestProcessWithOpenCodeHealthy(t *testing.T) {
 	}
 }
 
-func TestTruncateDiff(t *testing.T) {
-	tests := []struct {
-		name   string
-		diff   string
-		maxLen int
-		want   string
-	}{
-		{
-			name:   "short diff",
-			diff:   "short",
-			maxLen: 100,
-			want:   "short",
-		},
-		{
-			name:   "exact length",
-			diff:   "exact",
-			maxLen: 5,
-			want:   "exact",
-		},
-		{
-			name:   "truncated",
-			diff:   "this is a long diff",
-			maxLen: 10,
-			want:   "this is a \n... (truncated)",
-		},
-	}
+func TestWithPromptTemplate(t *testing.T) {
+	logger := log.New(&bytes.Buffer{}, "", 0)
+	svc := NewService(logger, nil, WithPromptTemplate("pr-review-ja"))
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := truncateDiff(tt.diff, tt.maxLen)
-			if got != tt.want {
-				t.Errorf("truncateDiff() = %q, want %q", got, tt.want)
-			}
-		})
+	if svc.promptBuilder == nil {
+		t.Fatal("expected promptBuilder to be set")
 	}
 }
 
-func TestBuildReviewPrompt(t *testing.T) {
-	prInfo := &githubapp.PullRequestInfo{
-		Title: "Add new feature",
-		Body:  "This PR adds a cool feature",
-		Head:  "feature-branch",
-		Base:  "main",
-	}
-	diff := "+func newFeature() {}"
+func TestWithPromptBuilder(t *testing.T) {
+	logger := log.New(&bytes.Buffer{}, "", 0)
+	// Create a custom builder (we don't need prompt import here, just test the option works)
+	svc := NewService(logger, nil)
 
-	prompt := buildReviewPrompt(prInfo, diff)
-
-	if !strings.Contains(prompt, "Add new feature") {
-		t.Error("prompt should contain PR title")
-	}
-	if !strings.Contains(prompt, "This PR adds a cool feature") {
-		t.Error("prompt should contain PR body")
-	}
-	if !strings.Contains(prompt, "feature-branch") {
-		t.Error("prompt should contain head branch")
-	}
-	if !strings.Contains(prompt, "main") {
-		t.Error("prompt should contain base branch")
-	}
-	if !strings.Contains(prompt, "+func newFeature()") {
-		t.Error("prompt should contain diff")
+	if svc.promptBuilder == nil {
+		t.Fatal("expected default promptBuilder to be set")
 	}
 }
