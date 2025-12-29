@@ -16,7 +16,7 @@
 It monitors activity, supports discussions, assists reviews, and can execute entrusted tasks on your behalf.
 
 
-GolangでGitHub Appを作るための雛形です。標準の`net/http`だけでWebhook受信と認証の骨組みを提供します。
+GolangでGitHub Appを作るための雛形です。Webhook受信は`net/http`、GitHub APIの認証とトークン取得は`go-github`を利用します。
 
 ## Prerequisites
 
@@ -151,7 +151,7 @@ sequenceDiagram
 ## テスト方針
 
 - `internal/config`: 環境変数の読み取りとバリデーション
-- `internal/githubapp`: JWT生成、Webhook署名、Installation token取得、キャッシュ
+- `internal/githubapp`: JWT生成、Webhook署名、Installation token取得（go-github利用）、キャッシュ
 - `internal/webhook`: イベントルーティングと基本のパース
 
 ### Fixtures
