@@ -22,6 +22,9 @@ type Config struct {
 	// OpenCode server configuration
 	OpenCodeHost string // OpenCode server hostname (default: 127.0.0.1)
 	OpenCodePort int    // OpenCode server port (default: 4096)
+
+	// AI review configuration
+	PromptTemplate string // Prompt template name (default: pr-review)
 }
 
 const (
@@ -30,6 +33,7 @@ const (
 	defaultWebhookPath      = "/webhook"
 	defaultOpenCodeHost     = "127.0.0.1"
 	defaultOpenCodePort     = 4096
+	defaultPromptTemplate   = "pr-review"
 )
 
 // Load reads configuration from environment variables.
@@ -46,6 +50,8 @@ const (
 //   - GITHUB_WEBHOOK_PATH: webhook endpoint (default: "/webhook")
 //   - OPENCODE_HOST: OpenCode server hostname (default: "127.0.0.1")
 //   - OPENCODE_PORT: OpenCode server port (default: 4096)
+//   - PROMPT_TEMPLATE: prompt template name (default: "pr-review")
+//     Available templates: pr-review, pr-review-concise, pr-review-ja, pr-review-security
 func Load() (Config, error) {
 	cfg := Config{
 		Addr:              envOrDefault("APP_ADDR", defaultAddr),
@@ -54,6 +60,7 @@ func Load() (Config, error) {
 		GitHubAPIBaseURL:  envOrDefault("GITHUB_API_BASE_URL", defaultGitHubAPIBaseURL),
 		GitHubWebhookPath: envOrDefault("GITHUB_WEBHOOK_PATH", defaultWebhookPath),
 		OpenCodeHost:      envOrDefault("OPENCODE_HOST", defaultOpenCodeHost),
+		PromptTemplate:    envOrDefault("PROMPT_TEMPLATE", defaultPromptTemplate),
 	}
 
 	var err error

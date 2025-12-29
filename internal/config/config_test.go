@@ -6,6 +6,9 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("APP_ADDR", "")
 	t.Setenv("GITHUB_API_BASE_URL", "")
 	t.Setenv("GITHUB_WEBHOOK_PATH", "")
+	t.Setenv("OPENCODE_HOST", "")
+	t.Setenv("OPENCODE_PORT", "")
+	t.Setenv("PROMPT_TEMPLATE", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -19,6 +22,15 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.GitHubWebhookPath != defaultWebhookPath {
 		t.Fatalf("expected default webhook path %s, got %s", defaultWebhookPath, cfg.GitHubWebhookPath)
+	}
+	if cfg.OpenCodeHost != defaultOpenCodeHost {
+		t.Fatalf("expected default opencode host %s, got %s", defaultOpenCodeHost, cfg.OpenCodeHost)
+	}
+	if cfg.OpenCodePort != defaultOpenCodePort {
+		t.Fatalf("expected default opencode port %d, got %d", defaultOpenCodePort, cfg.OpenCodePort)
+	}
+	if cfg.PromptTemplate != defaultPromptTemplate {
+		t.Fatalf("expected default prompt template %s, got %s", defaultPromptTemplate, cfg.PromptTemplate)
 	}
 }
 

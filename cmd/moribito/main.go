@@ -120,6 +120,14 @@ func printInstallationToken(cfg config.Config) error {
 // createOpenCodeOptions creates review service options for OpenCode integration.
 // Returns empty options if OpenCode is not configured or unavailable.
 func createOpenCodeOptions(cfg config.Config, logger *log.Logger) []review.ServiceOption {
+	var opts []review.ServiceOption
+
+	// Set prompt template if configured
+	if cfg.PromptTemplate != "" {
+		opts = append(opts, review.WithPromptTemplate(cfg.PromptTemplate))
+		logger.Printf("prompt: using template %q", cfg.PromptTemplate)
+	}
+
 	// Create OpenCode client
 	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
 
@@ -130,9 +138,10 @@ func createOpenCodeOptions(cfg config.Config, logger *log.Logger) []review.Servi
 	if ocClient.IsHealthy(ctx) {
 		health, _ := ocClient.Health(ctx)
 		logger.Printf("opencode: connected to %s (version: %s)", ocClient.BaseURL(), health.Version)
-		return []review.ServiceOption{review.WithOpenCodeClient(ocClient)}
+		opts = append(opts, review.WithOpenCodeClient(ocClient))
+		return opts
 	}
 
 	logger.Printf("opencode: server not available at %s, AI review disabled", ocClient.BaseURL())
-	return nil
+	return opts
 }
