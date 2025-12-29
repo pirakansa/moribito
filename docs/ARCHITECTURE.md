@@ -50,12 +50,14 @@ internal/
 │   ├── jwt.go          # App JWT generation
 │   ├── token.go        # Installation token fetching
 │   └── token_cache.go  # Token caching with auto-refresh
+├── issue/              # Issue comment response service
+│   └── issue.go        # Trigger detection → AI Response → Comment
 ├── opencode/           # OpenCode server API client
 │   ├── client.go       # HTTP client, health check, providers
 │   ├── session.go      # Session lifecycle management
 │   └── message.go      # Message sending/receiving
 ├── prompt/             # AI prompt templates
-│   ├── templates.go    # Built-in prompt templates
+│   ├── templates.go    # Built-in prompt templates (PR + Issue)
 │   └── builder.go      # Prompt construction with options
 ├── queue/              # In-memory job queue with worker pool
 ├── review/             # PR review service
@@ -79,6 +81,8 @@ Provides the interface for GitHub API operations:
 type GitHubClient interface {
     AddIssueReaction(ctx, owner, repo string, number int, reaction string) error
     AddIssueComment(ctx, owner, repo string, number int, body string) error
+    AddCommentReaction(ctx, owner, repo string, commentID int64, reaction string) error
+    GetIssue(ctx, owner, repo string, number int) (*IssueInfo, error)
 }
 ```
 
@@ -104,6 +108,23 @@ Handles PR events with a three-phase approach:
 func (s *Service) OnPullRequestOpened(ctx, pr) error {
     s.acknowledge(ctx, client, owner, repo, pr.Number)  // 👀
     s.process(ctx, client, owner, repo, pr.Number)      // AI Review → Comment
+}
+```
+
+### Issue Service
+
+Handles issue comment events triggered by `@moribito` prefix:
+
+1. **Check Trigger**: Verify comment starts with `@moribito`
+2. **Acknowledge**: Add 👀 reaction to the comment
+3. **AI Response**: Send issue context to OpenCode for analysis
+4. **Reply**: Post AI response as a new comment
+
+```go
+func (s *Service) OnIssueComment(ctx, event) error {
+    if !s.ShouldRespond(event.CommentBody) { return nil }
+    s.acknowledge(ctx, client, event)     // 👀
+    s.process(ctx, client, event)         // AI Response → Comment
 }
 ```
 
@@ -140,10 +161,17 @@ prompt, err := builder.BuildPRReviewPrompt(ctx)
 ```
 
 Built-in templates:
+
+**PR Review:**
 - `pr-review` - Standard code review
 - `pr-review-concise` - Critical issues only
 - `pr-review-ja` - Japanese output
 - `pr-review-security` - Security focus
+
+**Issue Response:**
+- `issue-response` - Standard issue response
+- `issue-response-ja` - Japanese output
+- `issue-technical` - Technical troubleshooting
 
 ### Job Queue
 

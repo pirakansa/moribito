@@ -36,12 +36,34 @@ The app automatically detects OpenCode availability at startup. If unavailable, 
 
 #### Available Templates
 
+##### PR Review Templates
+
 | Template Name | Description |
 |---------------|-------------|
 | `pr-review` | Standard code review in English |
 | `pr-review-concise` | Brief review focusing only on critical issues |
 | `pr-review-ja` | Review output in Japanese |
 | `pr-review-security` | Security-focused analysis |
+
+##### Issue Response Templates
+
+| Template Name | Description |
+|---------------|-------------|
+| `issue-response` | Standard issue comment response in English |
+| `issue-response-ja` | Issue response in Japanese |
+| `issue-technical` | Technical troubleshooting focus |
+
+### Issue AI Response
+
+The app responds to issue comments that start with `@moribito`. When triggered:
+1. Adds 👀 reaction to acknowledge the comment
+2. Sends the issue context to OpenCode for AI analysis
+3. Posts the AI response as a new comment
+
+Example trigger:
+```
+@moribito このエラーの原因を教えてください
+```
 
 ## Usage Examples
 

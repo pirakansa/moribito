@@ -22,7 +22,8 @@ Built with Go using `net/http` for webhook handling and `go-github` for GitHub A
 - **Webhook Processing**: Receives and validates GitHub webhook events
 - **PR Review Automation**: Automatically acknowledges new PRs with 👀 reaction
 - **AI-Powered Code Review**: Integrates with [OpenCode](https://opencode.ai) server for intelligent code reviews
-- **Customizable Prompts**: Multiple built-in review templates (standard, concise, Japanese, security-focused)
+- **Issue AI Response**: Responds to issue comments starting with `@moribito`
+- **Customizable Prompts**: Multiple built-in templates for PR reviews and issue responses
 - **Async Job Queue**: Background processing for long-running tasks
 - **Extensible Architecture**: Easy to add new event handlers and review logic
 - **Graceful Degradation**: Works without AI when OpenCode is unavailable
@@ -98,6 +99,30 @@ PR Created → Webhook Received → Acknowledge (👀) → AI Review → Post Co
 | `pr-review-concise` | Brief review focusing on critical issues |
 | `pr-review-ja` | Review output in Japanese |
 | `pr-review-security` | Security-focused analysis |
+| `issue-response` | Standard issue comment response |
+| `issue-response-ja` | Issue response in Japanese |
+| `issue-technical` | Technical troubleshooting focus |
+
+## Issue AI Response
+
+The app responds to issue comments that start with `@moribito`:
+
+```
+User Comment → @moribito detected? → Acknowledge (👀) → AI Response → Post Comment
+```
+
+### How to Use
+
+In any issue, add a comment starting with `@moribito`:
+
+```
+@moribito How do I fix this error?
+```
+
+The bot will:
+1. Add 👀 reaction to acknowledge
+2. Analyze the issue context with AI
+3. Post a helpful response
 
 ## Architecture
 
