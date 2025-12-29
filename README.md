@@ -21,8 +21,11 @@ Built with Go using `net/http` for webhook handling and `go-github` for GitHub A
 
 - **Webhook Processing**: Receives and validates GitHub webhook events
 - **PR Review Automation**: Automatically acknowledges new PRs with 👀 reaction
+- **AI-Powered Code Review**: Integrates with [OpenCode](https://opencode.ai) server for intelligent code reviews
+- **Customizable Prompts**: Multiple built-in review templates (standard, concise, Japanese, security-focused)
 - **Async Job Queue**: Background processing for long-running tasks
 - **Extensible Architecture**: Easy to add new event handlers and review logic
+- **Graceful Degradation**: Works without AI when OpenCode is unavailable
 
 ## Quick Start
 
@@ -70,17 +73,31 @@ The server starts on `:8080` with endpoints:
 | `GITHUB_WEBHOOK_SECRET` | No | Webhook signature secret |
 | `GITHUB_WEBHOOK_PATH` | No | Webhook endpoint path (default: `/webhook`) |
 | `GITHUB_API_BASE_URL` | No | API URL (default: `https://api.github.com`) |
+| `OPENCODE_HOST` | No | OpenCode server hostname (default: `127.0.0.1`) |
+| `OPENCODE_PORT` | No | OpenCode server port (default: `4096`) |
+| `PROMPT_TEMPLATE` | No | Review prompt template (default: `pr-review`) |
 
 ## PR Review Flow
 
 When a Pull Request is opened, the app follows this flow:
 
 ```
-PR Created → Webhook Received → Acknowledge (👀) → Process Review
+PR Created → Webhook Received → Acknowledge (👀) → AI Review → Post Comment
 ```
 
 1. **Acknowledge**: Adds 👀 (eyes) reaction to show the request was received
-2. **Process**: Executes review logic (extensible for AI review, linting, etc.)
+2. **Fetch Diff**: Retrieves PR diff from GitHub API
+3. **AI Review**: Sends diff to OpenCode server for analysis (if available)
+4. **Post Comment**: Posts AI review as a PR comment
+
+### Prompt Templates
+
+| Template | Description |
+|----------|-------------|
+| `pr-review` | Standard code review (default) |
+| `pr-review-concise` | Brief review focusing on critical issues |
+| `pr-review-ja` | Review output in Japanese |
+| `pr-review-security` | Security-focused analysis |
 
 ## Architecture
 
@@ -89,6 +106,8 @@ cmd/moribito/          # CLI entry point
 internal/
 ├── config/            # Environment configuration
 ├── githubapp/         # GitHub API client & authentication
+├── opencode/          # OpenCode server API client
+├── prompt/            # Prompt templates & builder
 ├── queue/             # Background job queue
 ├── review/            # PR review service
 ├── server/            # HTTP server

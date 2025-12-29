@@ -12,10 +12,16 @@ It is intentionally lightweight and avoids framework lock-in.
 └─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
                                                                    │
                                                                    ▼
-                    ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-                    │  GitHub API │◀────│   Client    │◀────│    Queue    │
-                    │  (Actions)  │     │  (go-github)│     │   (Jobs)    │
-                    └─────────────┘     └─────────────┘     └─────────────┘
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  OpenCode   │◀────│  AI Review  │◀────│   Review    │◀────│    Queue    │
+│  (Server)   │     │  (Prompt)   │     │  Service    │     │   (Jobs)    │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+                                               │
+                                               ▼
+                    ┌─────────────┐     ┌─────────────┐
+                    │  GitHub API │◀────│   Client    │
+                    │  (Actions)  │     │  (go-github)│
+                    └─────────────┘     └─────────────┘
 ```
 
 ### Request Flow
@@ -24,7 +30,11 @@ It is intentionally lightweight and avoids framework lock-in.
 2. Server verifies the webhook signature (if configured)
 3. Router dispatches event to the appropriate handler
 4. Handler enqueues a background job for processing
-5. Worker executes the job (e.g., add reaction, post comment)
+5. Worker executes the job:
+   - Add reaction (👀) to acknowledge
+   - Fetch PR diff from GitHub
+   - Send diff to OpenCode for AI analysis (if available)
+   - Post AI review as PR comment
 
 ## Package Structure
 
@@ -40,9 +50,16 @@ internal/
 │   ├── jwt.go          # App JWT generation
 │   ├── token.go        # Installation token fetching
 │   └── token_cache.go  # Token caching with auto-refresh
+├── opencode/           # OpenCode server API client
+│   ├── client.go       # HTTP client, health check, providers
+│   ├── session.go      # Session lifecycle management
+│   └── message.go      # Message sending/receiving
+├── prompt/             # AI prompt templates
+│   ├── templates.go    # Built-in prompt templates
+│   └── builder.go      # Prompt construction with options
 ├── queue/              # In-memory job queue with worker pool
 ├── review/             # PR review service
-│   └── review.go       # Acknowledge → Process flow
+│   └── review.go       # Acknowledge → AI Review → Comment flow
 ├── server/             # HTTP server and middleware
 └── webhook/            # Event router and handlers
     ├── router.go       # Event type dispatch
@@ -77,17 +94,56 @@ type ClientFactory interface {
 
 ### Review Service
 
-Handles PR events with a two-phase approach:
+Handles PR events with a three-phase approach:
 
 1. **Acknowledge**: Add 👀 reaction immediately
-2. **Process**: Execute review logic asynchronously
+2. **AI Review**: Send diff to OpenCode for analysis (gracefully degrades if unavailable)
+3. **Comment**: Post review as PR comment
 
 ```go
 func (s *Service) OnPullRequestOpened(ctx, pr) error {
     s.acknowledge(ctx, client, owner, repo, pr.Number)  // 👀
-    s.process(ctx, client, owner, repo, pr.Number)      // Review logic
+    s.process(ctx, client, owner, repo, pr.Number)      // AI Review → Comment
 }
 ```
+
+### OpenCode Client
+
+Communicates with OpenCode server for AI-powered code analysis:
+
+```go
+type Client struct {
+    baseURL string
+    // ...
+}
+
+func (c *Client) IsHealthy(ctx context.Context) bool
+func (c *Client) CreateSession(ctx, req) (*Session, error)
+func (c *Client) SendMessage(ctx, sessionID, req) (*Message, error)
+```
+
+Features:
+- Health check at startup
+- Session-based API for conversation context
+- Graceful degradation when unavailable
+
+### Prompt Builder
+
+Constructs prompts using customizable templates:
+
+```go
+builder := prompt.NewBuilder(
+    prompt.WithTemplateName("pr-review-ja"),
+    prompt.WithMaxDiffLength(50000),
+)
+prompt, err := builder.BuildPRReviewPrompt(ctx)
+```
+
+Built-in templates:
+- `pr-review` - Standard code review
+- `pr-review-concise` - Critical issues only
+- `pr-review-ja` - Japanese output
+- `pr-review-security` - Security focus
 
 ### Job Queue
 
