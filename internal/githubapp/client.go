@@ -16,6 +16,19 @@ type GitHubClient interface {
 	AddIssueReaction(ctx context.Context, owner, repo string, number int, reaction string) error
 	// AddIssueComment posts a comment on an issue or pull request.
 	AddIssueComment(ctx context.Context, owner, repo string, number int, body string) error
+	// GetPullRequestDiff returns the diff of a pull request in unified diff format.
+	GetPullRequestDiff(ctx context.Context, owner, repo string, number int) (string, error)
+	// GetPullRequest returns pull request details.
+	GetPullRequest(ctx context.Context, owner, repo string, number int) (*PullRequestInfo, error)
+}
+
+// PullRequestInfo holds essential pull request information.
+type PullRequestInfo struct {
+	Title   string
+	Body    string
+	Head    string // Head branch name
+	Base    string // Base branch name
+	HTMLURL string
 }
 
 // Client provides GitHub API operations for the application.
@@ -66,6 +79,40 @@ func (c *Client) AddIssueComment(ctx context.Context, owner, repo string, number
 		return fmt.Errorf("create comment: %w", err)
 	}
 	return nil
+}
+
+// GetPullRequestDiff returns the diff of a pull request in unified diff format.
+// Parameters:
+//   - ctx: context for cancellation
+//   - owner: repository owner
+//   - repo: repository name
+//   - number: PR number
+func (c *Client) GetPullRequestDiff(ctx context.Context, owner, repo string, number int) (string, error) {
+	diff, _, err := c.gh.PullRequests.GetRaw(ctx, owner, repo, number, github.RawOptions{Type: github.Diff})
+	if err != nil {
+		return "", fmt.Errorf("get pull request diff: %w", err)
+	}
+	return diff, nil
+}
+
+// GetPullRequest returns pull request details.
+// Parameters:
+//   - ctx: context for cancellation
+//   - owner: repository owner
+//   - repo: repository name
+//   - number: PR number
+func (c *Client) GetPullRequest(ctx context.Context, owner, repo string, number int) (*PullRequestInfo, error) {
+	pr, _, err := c.gh.PullRequests.Get(ctx, owner, repo, number)
+	if err != nil {
+		return nil, fmt.Errorf("get pull request: %w", err)
+	}
+	return &PullRequestInfo{
+		Title:   pr.GetTitle(),
+		Body:    pr.GetBody(),
+		Head:    pr.GetHead().GetRef(),
+		Base:    pr.GetBase().GetRef(),
+		HTMLURL: pr.GetHTMLURL(),
+	}, nil
 }
 
 // ParseRepoFullName splits "owner/repo" into owner and repo parts.
