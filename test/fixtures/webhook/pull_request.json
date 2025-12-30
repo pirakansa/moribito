@@ -1,0 +1,12 @@
+{
+  "action": "opened",
+  "installation": {
+    "id": 12345
+  },
+  "pull_request": {
+    "number": 42
+  },
+  "repository": {
+    "full_name": "example/repo"
+  }
+}
