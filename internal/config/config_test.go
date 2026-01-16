@@ -9,6 +9,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("OPENCODE_HOST", "")
 	t.Setenv("OPENCODE_PORT", "")
 	t.Setenv("PROMPT_TEMPLATE", "")
+	t.Setenv("ISSUE_TRIGGER_PREFIX", "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -31,6 +32,9 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.PromptTemplate != defaultPromptTemplate {
 		t.Fatalf("expected default prompt template %s, got %s", defaultPromptTemplate, cfg.PromptTemplate)
+	}
+	if cfg.IssueTriggerPrefix != defaultIssueTriggerPrefix {
+		t.Fatalf("expected default issue trigger prefix %s, got %s", defaultIssueTriggerPrefix, cfg.IssueTriggerPrefix)
 	}
 }
 

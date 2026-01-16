@@ -77,6 +77,7 @@ The server starts on `:8080` with endpoints:
 | `OPENCODE_HOST` | No | OpenCode server hostname (default: `127.0.0.1`) |
 | `OPENCODE_PORT` | No | OpenCode server port (default: `4096`) |
 | `PROMPT_TEMPLATE` | No | Review prompt template (default: `pr-review`) |
+| `ISSUE_TRIGGER_PREFIX` | No | Issue comment trigger prefix (default: `@moribito`) |
 
 ## PR Review Flow
 
@@ -105,7 +106,7 @@ PR Created → Webhook Received → Acknowledge (👀) → AI Review → Post Co
 
 ## Issue AI Response
 
-The app responds to issue comments that start with `@moribito`:
+The app responds to issue comments that start with `@moribito` (customizable via `ISSUE_TRIGGER_PREFIX`):
 
 ```
 User Comment → @moribito detected? → Acknowledge (👀) → AI Response → Post Comment
@@ -113,7 +114,7 @@ User Comment → @moribito detected? → Acknowledge (👀) → AI Response → 
 
 ### How to Use
 
-In any issue, add a comment starting with `@moribito`:
+In any issue, add a comment starting with `@moribito` (or your configured prefix):
 
 ```
 @moribito How do I fix this error?
