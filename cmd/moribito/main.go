@@ -152,14 +152,12 @@ func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.Serv
 }
 
 // createIssueService creates the issue response service.
-// Returns nil if OpenCode is not available.
+// AI responses are disabled when OpenCode is not available, but reactions still work.
 func createIssueService(cfg config.Config, logger *log.Logger, factory *githubapp.DefaultClientFactory, ocClient *opencode.Client) *issue.Service {
-	if ocClient == nil {
-		return nil
-	}
-
 	var opts []issue.ServiceOption
-	opts = append(opts, issue.WithOpenCodeClient(ocClient))
+	if ocClient != nil {
+		opts = append(opts, issue.WithOpenCodeClient(ocClient))
+	}
 
 	// Use issue-specific template if prompt template starts with "issue-"
 	// Otherwise, use default issue template
