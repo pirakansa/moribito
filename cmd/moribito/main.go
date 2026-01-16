@@ -47,10 +47,10 @@ func run() error {
 		return err
 	}
 
-	jobQueue := queue.New(100)
+	jobQueue := queue.New(cfg.QueueBuffer)
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	jobQueue.Start(ctx, 2)
+	jobQueue.Start(ctx, cfg.QueueWorkers)
 
 	// Create GitHub client factory for the review service
 	clientFactory := githubapp.NewClientFactory(githubapp.ClientFactoryConfig{
@@ -74,7 +74,8 @@ func run() error {
 		return err
 	}
 
-	srv := server.New(cfg, logger, jobQueue, reviewer, issueService)
+	healthClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
+	srv := server.New(cfg, logger, jobQueue, reviewer, issueService, healthClient, cfg.QueueWorkers, cfg.QueueBuffer)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           srv.Handler(),

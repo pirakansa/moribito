@@ -60,7 +60,7 @@ export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
 ```
 
 The server starts on `:8080` with endpoints:
-- `GET /healthz` - Health check
+- `GET /healthz` - Health check (JSON)
 - `POST /webhook` - GitHub webhook receiver
 
 ## Environment Variables
@@ -76,6 +76,8 @@ The server starts on `:8080` with endpoints:
 | `GITHUB_API_BASE_URL` | No | API URL (default: `https://api.github.com`) |
 | `OPENCODE_HOST` | No | OpenCode server hostname (default: `127.0.0.1`) |
 | `OPENCODE_PORT` | No | OpenCode server port (default: `4096`) |
+| `QUEUE_WORKERS` | No | Queue worker count (default: `2`) |
+| `QUEUE_BUFFER` | No | Queue buffer size (default: `100`) |
 | `PR_REVIEW_TEMPLATE_PATH` | **Yes** | PR review prompt template file path |
 | `ISSUE_RESPONSE_TEMPLATE_PATH` | **Yes** | Issue response prompt template file path |
 | `ISSUE_TRIGGER_PREFIX` | No | Issue comment trigger prefix (default: `@moribito`) |

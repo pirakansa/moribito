@@ -8,6 +8,8 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("GITHUB_WEBHOOK_PATH", "")
 	t.Setenv("OPENCODE_HOST", "")
 	t.Setenv("OPENCODE_PORT", "")
+	t.Setenv("QUEUE_WORKERS", "")
+	t.Setenv("QUEUE_BUFFER", "")
 	t.Setenv("PR_REVIEW_TEMPLATE_PATH", "/tmp/pr.tmpl")
 	t.Setenv("ISSUE_RESPONSE_TEMPLATE_PATH", "/tmp/issue.tmpl")
 	t.Setenv("ISSUE_TRIGGER_PREFIX", "")
@@ -30,6 +32,12 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.OpenCodePort != defaultOpenCodePort {
 		t.Fatalf("expected default opencode port %d, got %d", defaultOpenCodePort, cfg.OpenCodePort)
+	}
+	if cfg.QueueWorkers != defaultQueueWorkers {
+		t.Fatalf("expected default queue workers %d, got %d", defaultQueueWorkers, cfg.QueueWorkers)
+	}
+	if cfg.QueueBuffer != defaultQueueBuffer {
+		t.Fatalf("expected default queue buffer %d, got %d", defaultQueueBuffer, cfg.QueueBuffer)
 	}
 	if cfg.PRReviewTemplatePath != "/tmp/pr.tmpl" {
 		t.Fatalf("expected pr review template path %s, got %s", "/tmp/pr.tmpl", cfg.PRReviewTemplatePath)

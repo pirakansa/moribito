@@ -23,6 +23,10 @@ type Config struct {
 	OpenCodeHost string // OpenCode server hostname (default: 127.0.0.1)
 	OpenCodePort int    // OpenCode server port (default: 4096)
 
+	// Queue configuration
+	QueueWorkers int // Number of worker goroutines for background jobs
+	QueueBuffer  int // Queue buffer size
+
 	// AI review configuration
 	PRReviewTemplatePath string // PR review prompt template file path
 
@@ -38,6 +42,8 @@ const (
 	defaultOpenCodeHost       = "127.0.0.1"
 	defaultOpenCodePort       = 4096
 	defaultIssueTriggerPrefix = "@moribito"
+	defaultQueueWorkers       = 2
+	defaultQueueBuffer        = 100
 )
 
 // Load reads configuration from environment variables.
@@ -54,6 +60,8 @@ const (
 //   - GITHUB_WEBHOOK_PATH: webhook endpoint (default: "/webhook")
 //   - OPENCODE_HOST: OpenCode server hostname (default: "127.0.0.1")
 //   - OPENCODE_PORT: OpenCode server port (default: 4096)
+//   - QUEUE_WORKERS: number of queue workers (default: 2)
+//   - QUEUE_BUFFER: queue buffer size (default: 100)
 //   - PR_REVIEW_TEMPLATE_PATH: PR review prompt template file path
 //   - ISSUE_RESPONSE_TEMPLATE_PATH: issue response prompt template file path
 //   - ISSUE_TRIGGER_PREFIX: comment prefix to trigger AI response (default: "@moribito")
@@ -80,6 +88,14 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.OpenCodePort, err = parseIntEnvDefault("OPENCODE_PORT", defaultOpenCodePort)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.QueueWorkers, err = parseIntEnvDefault("QUEUE_WORKERS", defaultQueueWorkers)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.QueueBuffer, err = parseIntEnvDefault("QUEUE_BUFFER", defaultQueueBuffer)
 	if err != nil {
 		return Config{}, err
 	}

@@ -8,6 +8,8 @@
 |----------|---------|-------------|
 | `APP_ADDR` | `:8080` | Address to listen on |
 | `GITHUB_WEBHOOK_PATH` | `/webhook` | Webhook endpoint path |
+| `QUEUE_WORKERS` | `2` | Number of queue workers |
+| `QUEUE_BUFFER` | `100` | Queue buffer size |
 
 ### GitHub App Configuration
 
@@ -85,6 +87,8 @@ export GITHUB_APP_ID=123
 export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
 export OPENCODE_HOST=127.0.0.1
 export OPENCODE_PORT=4096
+export QUEUE_WORKERS=2
+export QUEUE_BUFFER=100
 export PR_REVIEW_TEMPLATE_PATH=docs/templates/pr-review-ja.md.tmpl
 export ISSUE_RESPONSE_TEMPLATE_PATH=docs/templates/issue-response-ja.md.tmpl
 ./bin/host/moribito
@@ -102,6 +106,8 @@ export GITHUB_WEBHOOK_SECRET=secret
 export GITHUB_API_BASE_URL=https://api.github.com
 export OPENCODE_HOST=127.0.0.1
 export OPENCODE_PORT=4096
+export QUEUE_WORKERS=2
+export QUEUE_BUFFER=100
 export PR_REVIEW_TEMPLATE_PATH=docs/templates/pr-review.md.tmpl
 export ISSUE_RESPONSE_TEMPLATE_PATH=docs/templates/issue-response.md.tmpl
 ./bin/host/moribito
