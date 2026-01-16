@@ -60,7 +60,7 @@ export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
 ```
 
 The server starts on `:8080` with endpoints:
-- `GET /healthz` - Health check
+- `GET /healthz` - Health check (JSON)
 - `POST /webhook` - GitHub webhook receiver
 
 ## Environment Variables
@@ -76,7 +76,11 @@ The server starts on `:8080` with endpoints:
 | `GITHUB_API_BASE_URL` | No | API URL (default: `https://api.github.com`) |
 | `OPENCODE_HOST` | No | OpenCode server hostname (default: `127.0.0.1`) |
 | `OPENCODE_PORT` | No | OpenCode server port (default: `4096`) |
-| `PROMPT_TEMPLATE` | No | Review prompt template (default: `pr-review`) |
+| `QUEUE_WORKERS` | No | Queue worker count (default: `2`) |
+| `QUEUE_BUFFER` | No | Queue buffer size (default: `100`) |
+| `PR_REVIEW_TEMPLATE_PATH` | **Yes** | PR review prompt template file path |
+| `ISSUE_RESPONSE_TEMPLATE_PATH` | **Yes** | Issue response prompt template file path |
+| `ISSUE_TRIGGER_PREFIX` | No | Issue comment trigger prefix (default: `@moribito`) |
 
 ## PR Review Flow
 
@@ -93,19 +97,21 @@ PR Created → Webhook Received → Acknowledge (👀) → AI Review → Post Co
 
 ### Prompt Templates
 
-| Template | Description |
-|----------|-------------|
-| `pr-review` | Standard code review (default) |
-| `pr-review-concise` | Brief review focusing on critical issues |
-| `pr-review-ja` | Review output in Japanese |
-| `pr-review-security` | Security-focused analysis |
-| `issue-response` | Standard issue comment response |
-| `issue-response-ja` | Issue response in Japanese |
-| `issue-technical` | Technical troubleshooting focus |
+Prompt templates are loaded from files. Sample templates are available under `docs/templates/`.
+
+| File | Description |
+|------|-------------|
+| `docs/templates/pr-review.md.tmpl` | Standard code review |
+| `docs/templates/pr-review-concise.md.tmpl` | Brief review focusing on critical issues |
+| `docs/templates/pr-review-ja.md.tmpl` | Review output in Japanese |
+| `docs/templates/pr-review-security.md.tmpl` | Security-focused analysis |
+| `docs/templates/issue-response.md.tmpl` | Standard issue comment response |
+| `docs/templates/issue-response-ja.md.tmpl` | Issue response in Japanese |
+| `docs/templates/issue-technical.md.tmpl` | Technical troubleshooting focus |
 
 ## Issue AI Response
 
-The app responds to issue comments that start with `@moribito`:
+The app responds to issue comments that start with `@moribito` (customizable via `ISSUE_TRIGGER_PREFIX`):
 
 ```
 User Comment → @moribito detected? → Acknowledge (👀) → AI Response → Post Comment
@@ -113,7 +119,7 @@ User Comment → @moribito detected? → Acknowledge (👀) → AI Response → 
 
 ### How to Use
 
-In any issue, add a comment starting with `@moribito`:
+In any issue, add a comment starting with `@moribito` (or your configured prefix):
 
 ```
 @moribito How do I fix this error?

@@ -4,15 +4,18 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/pirakansa/moribito/internal/config"
 	"github.com/pirakansa/moribito/internal/githubapp"
 	"github.com/pirakansa/moribito/internal/issue"
+	"github.com/pirakansa/moribito/internal/opencode"
 	"github.com/pirakansa/moribito/internal/review"
 	"github.com/pirakansa/moribito/internal/webhook"
 )
@@ -21,17 +24,23 @@ import (
 // It manages webhook signature verification, event routing,
 // and health check endpoints.
 type Server struct {
-	cfg     config.Config
-	logger  *log.Logger
-	handler *webhook.Router
+	cfg          config.Config
+	logger       *log.Logger
+	handler      *webhook.Router
+	opencode     *opencode.Client
+	queueWorkers int
+	queueBuffer  int
 }
 
 // New creates a Server with the given configuration and dependencies.
-func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, reviewer review.Reviewer, issueService *issue.Service) *Server {
+func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, reviewer review.Reviewer, issueService *issue.Service, ocClient *opencode.Client, queueWorkers, queueBuffer int) *Server {
 	return &Server{
-		cfg:     cfg,
-		logger:  logger,
-		handler: webhook.NewRouter(logger, submitter, reviewer, issueService),
+		cfg:          cfg,
+		logger:       logger,
+		handler:      webhook.NewRouter(logger, submitter, reviewer, issueService),
+		opencode:     ocClient,
+		queueWorkers: queueWorkers,
+		queueBuffer:  queueBuffer,
 	}
 }
 
@@ -46,10 +55,67 @@ func (s *Server) Handler() http.Handler {
 	return mux
 }
 
-// handleHealth responds with "ok" for health checks.
+type healthResponse struct {
+	Queue    healthQueue    `json:"queue"`
+	OpenCode healthOpenCode `json:"opencode"`
+}
+
+type healthQueue struct {
+	Workers int `json:"workers"`
+	Buffer  int `json:"buffer"`
+}
+
+type healthOpenCode struct {
+	Connected       bool   `json:"connected"`
+	Version         string `json:"version,omitempty"`
+	RunningSessions int    `json:"running_sessions"`
+}
+
+// handleHealth returns OpenCode and queue status in JSON format.
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte("ok"))
+	resp := healthResponse{
+		Queue: healthQueue{
+			Workers: s.queueWorkers,
+			Buffer:  s.queueBuffer,
+		},
+		OpenCode: healthOpenCode{
+			Connected:       false,
+			RunningSessions: 0,
+		},
+	}
+
+	status := http.StatusOK
+	if s.opencode == nil {
+		status = http.StatusServiceUnavailable
+	} else {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		health, err := s.opencode.Health(ctx)
+		if err != nil || !health.Healthy {
+			status = http.StatusServiceUnavailable
+		} else {
+			resp.OpenCode.Connected = true
+			resp.OpenCode.Version = health.Version
+
+			sessions, err := s.opencode.GetSessionStatus(ctx)
+			if err != nil {
+				resp.OpenCode.Connected = false
+				resp.OpenCode.Version = ""
+				status = http.StatusServiceUnavailable
+			} else {
+				for _, session := range sessions {
+					if session.Running {
+						resp.OpenCode.RunningSessions++
+					}
+				}
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // handleWebhook processes incoming GitHub webhook events.

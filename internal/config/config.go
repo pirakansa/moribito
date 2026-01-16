@@ -23,11 +23,16 @@ type Config struct {
 	OpenCodeHost string // OpenCode server hostname (default: 127.0.0.1)
 	OpenCodePort int    // OpenCode server port (default: 4096)
 
+	// Queue configuration
+	QueueWorkers int // Number of worker goroutines for background jobs
+	QueueBuffer  int // Queue buffer size
+
 	// AI review configuration
-	PromptTemplate string // Prompt template name (default: pr-review)
+	PRReviewTemplatePath string // PR review prompt template file path
 
 	// Issue response configuration
-	IssueTriggerPrefix string // Comment prefix to trigger AI response (default: @moribito)
+	IssueResponseTemplatePath string // Issue response prompt template file path
+	IssueTriggerPrefix        string // Comment prefix to trigger AI response (default: @moribito)
 }
 
 const (
@@ -36,8 +41,9 @@ const (
 	defaultWebhookPath        = "/webhook"
 	defaultOpenCodeHost       = "127.0.0.1"
 	defaultOpenCodePort       = 4096
-	defaultPromptTemplate     = "pr-review"
 	defaultIssueTriggerPrefix = "@moribito"
+	defaultQueueWorkers       = 2
+	defaultQueueBuffer        = 100
 )
 
 // Load reads configuration from environment variables.
@@ -54,19 +60,22 @@ const (
 //   - GITHUB_WEBHOOK_PATH: webhook endpoint (default: "/webhook")
 //   - OPENCODE_HOST: OpenCode server hostname (default: "127.0.0.1")
 //   - OPENCODE_PORT: OpenCode server port (default: 4096)
-//   - PROMPT_TEMPLATE: prompt template name (default: "pr-review")
-//     Available templates: pr-review, pr-review-concise, pr-review-ja, pr-review-security
+//   - QUEUE_WORKERS: number of queue workers (default: 2)
+//   - QUEUE_BUFFER: queue buffer size (default: 100)
+//   - PR_REVIEW_TEMPLATE_PATH: PR review prompt template file path
+//   - ISSUE_RESPONSE_TEMPLATE_PATH: issue response prompt template file path
 //   - ISSUE_TRIGGER_PREFIX: comment prefix to trigger AI response (default: "@moribito")
 func Load() (Config, error) {
 	cfg := Config{
-		Addr:               envOrDefault("APP_ADDR", defaultAddr),
-		PrivateKeyPath:     strings.TrimSpace(os.Getenv("GITHUB_PRIVATE_KEY_PATH")),
-		WebhookSecret:      strings.TrimSpace(os.Getenv("GITHUB_WEBHOOK_SECRET")),
-		GitHubAPIBaseURL:   envOrDefault("GITHUB_API_BASE_URL", defaultGitHubAPIBaseURL),
-		GitHubWebhookPath:  envOrDefault("GITHUB_WEBHOOK_PATH", defaultWebhookPath),
-		OpenCodeHost:       envOrDefault("OPENCODE_HOST", defaultOpenCodeHost),
-		PromptTemplate:     envOrDefault("PROMPT_TEMPLATE", defaultPromptTemplate),
-		IssueTriggerPrefix: envOrDefault("ISSUE_TRIGGER_PREFIX", defaultIssueTriggerPrefix),
+		Addr:                      envOrDefault("APP_ADDR", defaultAddr),
+		PrivateKeyPath:            strings.TrimSpace(os.Getenv("GITHUB_PRIVATE_KEY_PATH")),
+		WebhookSecret:             strings.TrimSpace(os.Getenv("GITHUB_WEBHOOK_SECRET")),
+		GitHubAPIBaseURL:          envOrDefault("GITHUB_API_BASE_URL", defaultGitHubAPIBaseURL),
+		GitHubWebhookPath:         envOrDefault("GITHUB_WEBHOOK_PATH", defaultWebhookPath),
+		OpenCodeHost:              envOrDefault("OPENCODE_HOST", defaultOpenCodeHost),
+		PRReviewTemplatePath:      strings.TrimSpace(os.Getenv("PR_REVIEW_TEMPLATE_PATH")),
+		IssueResponseTemplatePath: strings.TrimSpace(os.Getenv("ISSUE_RESPONSE_TEMPLATE_PATH")),
+		IssueTriggerPrefix:        envOrDefault("ISSUE_TRIGGER_PREFIX", defaultIssueTriggerPrefix),
 	}
 
 	var err error
@@ -79,6 +88,14 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.OpenCodePort, err = parseIntEnvDefault("OPENCODE_PORT", defaultOpenCodePort)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.QueueWorkers, err = parseIntEnvDefault("QUEUE_WORKERS", defaultQueueWorkers)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.QueueBuffer, err = parseIntEnvDefault("QUEUE_BUFFER", defaultQueueBuffer)
 	if err != nil {
 		return Config{}, err
 	}
@@ -107,6 +124,12 @@ func (c Config) ValidateForWebhook() error {
 	}
 	if strings.TrimSpace(c.GitHubWebhookPath) == "" {
 		return fmt.Errorf("GITHUB_WEBHOOK_PATH is required")
+	}
+	if strings.TrimSpace(c.PRReviewTemplatePath) == "" {
+		return fmt.Errorf("PR_REVIEW_TEMPLATE_PATH is required")
+	}
+	if strings.TrimSpace(c.IssueResponseTemplatePath) == "" {
+		return fmt.Errorf("ISSUE_RESPONSE_TEMPLATE_PATH is required")
 	}
 	return nil
 }
