@@ -59,14 +59,6 @@ func WithOpenCodeClient(client OpenCodeClient) ServiceOption {
 	}
 }
 
-// WithPromptTemplate sets the prompt template by name.
-// Available templates: "pr-review", "pr-review-concise", "pr-review-ja", "pr-review-security"
-func WithPromptTemplate(templateName string) ServiceOption {
-	return func(s *Service) {
-		s.promptBuilder = prompt.NewBuilder(prompt.WithTemplateName(templateName))
-	}
-}
-
 // WithPromptBuilder sets a custom prompt builder.
 func WithPromptBuilder(builder *prompt.Builder) ServiceOption {
 	return func(s *Service) {
@@ -79,7 +71,7 @@ func NewService(logger *log.Logger, clientFactory ClientFactory, opts ...Service
 	s := &Service{
 		logger:        logger,
 		clientFactory: clientFactory,
-		promptBuilder: prompt.NewBuilder(), // Default builder
+		promptBuilder: prompt.NewBuilder(), // Template is required via options.
 	}
 	for _, opt := range opts {
 		opt(s)

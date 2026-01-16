@@ -15,6 +15,7 @@ import (
 	"github.com/pirakansa/moribito/internal/githubapp"
 	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/opencode"
+	"github.com/pirakansa/moribito/internal/prompt"
 	"github.com/pirakansa/moribito/internal/queue"
 	"github.com/pirakansa/moribito/internal/review"
 	"github.com/pirakansa/moribito/internal/server"
@@ -60,12 +61,18 @@ func run() error {
 	})
 
 	// Create OpenCode client for AI-powered reviews (optional)
-	reviewOpts, ocClient := createOpenCodeOptions(cfg, logger)
+	reviewOpts, ocClient, err := createOpenCodeOptions(cfg, logger)
+	if err != nil {
+		return err
+	}
 
 	reviewer := review.NewService(logger, clientFactory, reviewOpts...)
 
 	// Create Issue service for AI-powered issue responses
-	issueService := createIssueService(cfg, logger, clientFactory, ocClient)
+	issueService, err := createIssueService(cfg, logger, clientFactory, ocClient)
+	if err != nil {
+		return err
+	}
 
 	srv := server.New(cfg, logger, jobQueue, reviewer, issueService)
 	httpServer := &http.Server{
@@ -124,14 +131,15 @@ func printInstallationToken(cfg config.Config) error {
 
 // createOpenCodeOptions creates review service options for OpenCode integration.
 // Returns options and the OpenCode client (nil if unavailable).
-func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.ServiceOption, *opencode.Client) {
+func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.ServiceOption, *opencode.Client, error) {
 	var opts []review.ServiceOption
 
-	// Set prompt template if configured
-	if cfg.PromptTemplate != "" {
-		opts = append(opts, review.WithPromptTemplate(cfg.PromptTemplate))
-		logger.Printf("prompt: using template %q", cfg.PromptTemplate)
+	prTemplate, err := prompt.LoadTemplateFromFile(cfg.PRReviewTemplatePath)
+	if err != nil {
+		return nil, nil, err
 	}
+	opts = append(opts, review.WithPromptBuilder(prompt.NewBuilder(prompt.WithTemplate(prTemplate))))
+	logger.Printf("prompt: using PR review template %q", cfg.PRReviewTemplatePath)
 
 	// Create OpenCode client
 	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
@@ -144,26 +152,27 @@ func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.Serv
 		health, _ := ocClient.Health(ctx)
 		logger.Printf("opencode: connected to %s (version: %s)", ocClient.BaseURL(), health.Version)
 		opts = append(opts, review.WithOpenCodeClient(ocClient))
-		return opts, ocClient
+		return opts, ocClient, nil
 	}
 
 	logger.Printf("opencode: server not available at %s, AI features disabled", ocClient.BaseURL())
-	return opts, nil
+	return opts, nil, nil
 }
 
 // createIssueService creates the issue response service.
 // AI responses are disabled when OpenCode is not available, but reactions still work.
-func createIssueService(cfg config.Config, logger *log.Logger, factory *githubapp.DefaultClientFactory, ocClient *opencode.Client) *issue.Service {
+func createIssueService(cfg config.Config, logger *log.Logger, factory *githubapp.DefaultClientFactory, ocClient *opencode.Client) (*issue.Service, error) {
 	var opts []issue.ServiceOption
 	if ocClient != nil {
 		opts = append(opts, issue.WithOpenCodeClient(ocClient))
 	}
 
-	// Use issue-specific template if prompt template starts with "issue-"
-	// Otherwise, use default issue template
-	if cfg.PromptTemplate != "" && len(cfg.PromptTemplate) > 6 && cfg.PromptTemplate[:6] == "issue-" {
-		opts = append(opts, issue.WithPromptTemplate(cfg.PromptTemplate))
+	issueTemplate, err := prompt.LoadTemplateFromFile(cfg.IssueResponseTemplatePath)
+	if err != nil {
+		return nil, err
 	}
+	opts = append(opts, issue.WithPromptBuilder(prompt.NewBuilder(prompt.WithTemplate(issueTemplate))))
+	logger.Printf("prompt: using issue response template %q", cfg.IssueResponseTemplatePath)
 
 	// Set custom trigger prefix if configured
 	if cfg.IssueTriggerPrefix != "" {
@@ -171,5 +180,5 @@ func createIssueService(cfg config.Config, logger *log.Logger, factory *githubap
 		logger.Printf("issue: using trigger prefix %q", cfg.IssueTriggerPrefix)
 	}
 
-	return issue.NewService(logger, factory, opts...)
+	return issue.NewService(logger, factory, opts...), nil
 }

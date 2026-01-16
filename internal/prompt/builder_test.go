@@ -10,8 +10,8 @@ func TestNewBuilder(t *testing.T) {
 	if b == nil {
 		t.Fatal("expected non-nil builder")
 	}
-	if b.template.Name != DefaultPRReviewTemplate.Name {
-		t.Errorf("expected default template, got %s", b.template.Name)
+	if b.template.Content != "" {
+		t.Errorf("expected empty template content by default")
 	}
 	if b.maxDiffLen != 50000 {
 		t.Errorf("expected default maxDiffLen 50000, got %d", b.maxDiffLen)
@@ -20,16 +20,10 @@ func TestNewBuilder(t *testing.T) {
 
 func TestBuilderWithOptions(t *testing.T) {
 	t.Run("WithTemplate", func(t *testing.T) {
-		b := NewBuilder(WithTemplate(ConcisePRReviewTemplate))
-		if b.template.Name != "pr-review-concise" {
-			t.Errorf("expected concise template, got %s", b.template.Name)
-		}
-	})
-
-	t.Run("WithTemplateName", func(t *testing.T) {
-		b := NewBuilder(WithTemplateName("pr-review-ja"))
-		if b.template.Name != "pr-review-ja" {
-			t.Errorf("expected ja template, got %s", b.template.Name)
+		tmpl := Template{Name: "pr", Content: "Title: {{.Title}}"}
+		b := NewBuilder(WithTemplate(tmpl))
+		if b.template.Name != "pr" {
+			t.Errorf("expected pr template, got %s", b.template.Name)
 		}
 	})
 
@@ -50,7 +44,8 @@ func TestBuilderWithOptions(t *testing.T) {
 }
 
 func TestBuildPRReviewPrompt(t *testing.T) {
-	b := NewBuilder()
+	tmpl := Template{Name: "pr", Content: "Title={{.Title}}\nBody={{.Body}}\nHead={{.Head}}\nBase={{.Base}}\nDiff={{.Diff}}"}
+	b := NewBuilder(WithTemplate(tmpl))
 	ctx := PRReviewContext{
 		Title: "Add new feature",
 		Body:  "This PR adds an amazing feature",
@@ -82,7 +77,8 @@ func TestBuildPRReviewPrompt(t *testing.T) {
 }
 
 func TestBuildIssueResponsePrompt(t *testing.T) {
-	b := NewBuilder(WithTemplate(DefaultIssueResponseTemplate))
+	tmpl := Template{Name: "issue", Content: "Title={{.Title}}\nNumber=#{{.Number}}\nAuthor=@{{.Author}}\nBody={{.Body}}\nComment={{.Comment}}\nCommentAuthor=@{{.CommentAuthor}}"}
+	b := NewBuilder(WithTemplate(tmpl))
 	ctx := IssueContext{
 		Title:         "Bug Report",
 		Number:        42,
@@ -116,7 +112,8 @@ func TestBuildIssueResponsePrompt(t *testing.T) {
 }
 
 func TestBuildPRReviewPromptTruncation(t *testing.T) {
-	b := NewBuilder(WithMaxDiffLength(20))
+	tmpl := Template{Name: "pr", Content: "Diff={{.Diff}}"}
+	b := NewBuilder(WithTemplate(tmpl), WithMaxDiffLength(20))
 	ctx := PRReviewContext{
 		Title: "Test",
 		Body:  "Test body",
@@ -218,70 +215,7 @@ func TestTruncateText(t *testing.T) {
 
 func TestQuickBuildPRReview(t *testing.T) {
 	prompt, err := QuickBuildPRReview("Title", "Body", "head", "base", "url", "diff")
-	if err != nil {
-		t.Fatalf("QuickBuildPRReview failed: %v", err)
-	}
-	if !strings.Contains(prompt, "Title") {
-		t.Error("prompt should contain title")
-	}
-}
-
-func TestQuickBuildPRReviewWithTemplate(t *testing.T) {
-	prompt, err := QuickBuildPRReviewWithTemplate("pr-review-ja", "タイトル", "本文", "head", "base", "url", "diff")
-	if err != nil {
-		t.Fatalf("QuickBuildPRReviewWithTemplate failed: %v", err)
-	}
-	if !strings.Contains(prompt, "タイトル") {
-		t.Error("prompt should contain Japanese title")
-	}
-	if !strings.Contains(prompt, "レビュー") {
-		t.Error("prompt should be in Japanese")
-	}
-}
-
-func TestAllBuiltinTemplatesAreValid(t *testing.T) {
-	prCtx := PRReviewContext{
-		Title: "Test PR",
-		Body:  "Test description",
-		Head:  "feature",
-		Base:  "main",
-		URL:   "https://example.com/pr/1",
-		Diff:  "+test",
-	}
-
-	issueCtx := IssueContext{
-		Title:         "Test Issue",
-		Number:        42,
-		Author:        "testuser",
-		Body:          "Issue description",
-		URL:           "https://example.com/issue/42",
-		Comment:       "Help me!",
-		CommentAuthor: "commenter",
-		CommentID:     123,
-	}
-
-	for _, tmpl := range BuiltinTemplates() {
-		t.Run(tmpl.Name, func(t *testing.T) {
-			b := NewBuilder(WithTemplate(tmpl))
-
-			// Use appropriate context based on template type
-			if isIssueTemplate(tmpl.Name) {
-				prompt, err := b.BuildIssueResponsePrompt(issueCtx)
-				if err != nil {
-					t.Errorf("template %s failed to build: %v", tmpl.Name, err)
-				}
-				if prompt == "" {
-					t.Errorf("template %s produced empty prompt", tmpl.Name)
-				}
-			} else {
-				prompt, err := b.BuildPRReviewPrompt(prCtx)
-				if err != nil {
-					t.Errorf("template %s failed to build: %v", tmpl.Name, err)
-				}
-				if prompt == "" {
-					t.Errorf("template %s produced empty prompt", tmpl.Name)
-				}
-			}
-		})
+	if err == nil {
+		t.Fatalf("expected error for missing template, got prompt: %s", prompt)
 	}
 }

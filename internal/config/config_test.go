@@ -8,7 +8,8 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("GITHUB_WEBHOOK_PATH", "")
 	t.Setenv("OPENCODE_HOST", "")
 	t.Setenv("OPENCODE_PORT", "")
-	t.Setenv("PROMPT_TEMPLATE", "")
+	t.Setenv("PR_REVIEW_TEMPLATE_PATH", "/tmp/pr.tmpl")
+	t.Setenv("ISSUE_RESPONSE_TEMPLATE_PATH", "/tmp/issue.tmpl")
 	t.Setenv("ISSUE_TRIGGER_PREFIX", "")
 
 	cfg, err := Load()
@@ -30,8 +31,11 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.OpenCodePort != defaultOpenCodePort {
 		t.Fatalf("expected default opencode port %d, got %d", defaultOpenCodePort, cfg.OpenCodePort)
 	}
-	if cfg.PromptTemplate != defaultPromptTemplate {
-		t.Fatalf("expected default prompt template %s, got %s", defaultPromptTemplate, cfg.PromptTemplate)
+	if cfg.PRReviewTemplatePath != "/tmp/pr.tmpl" {
+		t.Fatalf("expected pr review template path %s, got %s", "/tmp/pr.tmpl", cfg.PRReviewTemplatePath)
+	}
+	if cfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
+		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", cfg.IssueResponseTemplatePath)
 	}
 	if cfg.IssueTriggerPrefix != defaultIssueTriggerPrefix {
 		t.Fatalf("expected default issue trigger prefix %s, got %s", defaultIssueTriggerPrefix, cfg.IssueTriggerPrefix)
@@ -68,8 +72,10 @@ func TestValidateForWebhook(t *testing.T) {
 	}
 
 	cfg = Config{
-		Addr:              ":8080",
-		GitHubWebhookPath: "/webhook",
+		Addr:                      ":8080",
+		GitHubWebhookPath:         "/webhook",
+		PRReviewTemplatePath:      "/tmp/pr.tmpl",
+		IssueResponseTemplatePath: "/tmp/issue.tmpl",
 	}
 	if err := cfg.ValidateForWebhook(); err != nil {
 		t.Fatalf("unexpected error: %v", err)

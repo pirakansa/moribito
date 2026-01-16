@@ -3,6 +3,7 @@ package prompt
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"text/template"
 )
 
@@ -45,13 +46,6 @@ func WithTemplate(t Template) BuilderOption {
 	}
 }
 
-// WithTemplateName sets template by name.
-func WithTemplateName(name string) BuilderOption {
-	return func(b *Builder) {
-		b.template = GetTemplateByName(name)
-	}
-}
-
 // WithMaxDiffLength sets the maximum diff length.
 func WithMaxDiffLength(maxLen int) BuilderOption {
 	return func(b *Builder) {
@@ -69,7 +63,6 @@ func WithCustomFooter(footer string) BuilderOption {
 // NewBuilder creates a new prompt Builder with the given options.
 func NewBuilder(opts ...BuilderOption) *Builder {
 	b := &Builder{
-		template:   DefaultPRReviewTemplate,
 		maxDiffLen: 50000, // Default max diff length
 	}
 	for _, opt := range opts {
@@ -80,6 +73,10 @@ func NewBuilder(opts ...BuilderOption) *Builder {
 
 // BuildPRReviewPrompt constructs a PR review prompt from the context.
 func (b *Builder) BuildPRReviewPrompt(ctx PRReviewContext) (string, error) {
+	if strings.TrimSpace(b.template.Content) == "" {
+		return "", fmt.Errorf("template content is empty")
+	}
+
 	// Truncate diff if needed
 	ctx.Diff = truncateText(ctx.Diff, b.maxDiffLen)
 
@@ -108,13 +105,11 @@ func (b *Builder) FormatReviewComment(review string) string {
 
 // BuildIssueResponsePrompt constructs an issue response prompt from the context.
 func (b *Builder) BuildIssueResponsePrompt(ctx IssueContext) (string, error) {
-	// Use issue template if set, otherwise use default issue template
-	tmplToUse := b.template
-	if !isIssueTemplate(b.template.Name) {
-		tmplToUse = DefaultIssueResponseTemplate
+	if strings.TrimSpace(b.template.Content) == "" {
+		return "", fmt.Errorf("template content is empty")
 	}
 
-	tmpl, err := template.New(tmplToUse.Name).Parse(tmplToUse.Content)
+	tmpl, err := template.New(b.template.Name).Parse(b.template.Content)
 	if err != nil {
 		return "", fmt.Errorf("parse template: %w", err)
 	}
@@ -137,11 +132,6 @@ func (b *Builder) FormatIssueResponse(response string) string {
 	return fmt.Sprintf("%s\n%s", response, footer)
 }
 
-// isIssueTemplate checks if the template name is an issue template.
-func isIssueTemplate(name string) bool {
-	return name == "issue-response" || name == "issue-response-ja" || name == "issue-technical"
-}
-
 // truncateText limits text length with a truncation marker.
 func truncateText(text string, maxLen int) string {
 	if maxLen <= 0 || len(text) <= maxLen {
@@ -154,18 +144,6 @@ func truncateText(text string, maxLen int) string {
 // with default settings.
 func QuickBuildPRReview(title, body, head, base, url, diff string) (string, error) {
 	return NewBuilder().BuildPRReviewPrompt(PRReviewContext{
-		Title: title,
-		Body:  body,
-		Head:  head,
-		Base:  base,
-		URL:   url,
-		Diff:  diff,
-	})
-}
-
-// QuickBuildPRReviewWithTemplate builds a PR review prompt with a specific template.
-func QuickBuildPRReviewWithTemplate(templateName, title, body, head, base, url, diff string) (string, error) {
-	return NewBuilder(WithTemplateName(templateName)).BuildPRReviewPrompt(PRReviewContext{
 		Title: title,
 		Body:  body,
 		Head:  head,

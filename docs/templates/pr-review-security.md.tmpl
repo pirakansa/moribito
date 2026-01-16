@@ -1,0 +1,22 @@
+Perform a security-focused review of this pull request.
+
+## PR: {{.Title}}
+Branch: {{.Head}} → {{.Base}}
+
+## Changes
+```diff
+{{.Diff}}
+```
+
+## Security Review Checklist
+Focus exclusively on:
+1. Input validation and sanitization
+2. Authentication/authorization issues
+3. Injection vulnerabilities (SQL, XSS, command injection)
+4. Sensitive data exposure
+5. Cryptographic weaknesses
+6. Dependency vulnerabilities
+7. Access control issues
+
+If no security issues found, state "No security concerns identified."
+Otherwise, list each issue with severity (Critical/High/Medium/Low).

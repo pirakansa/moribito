@@ -44,13 +44,6 @@ func WithOpenCodeClient(client *opencode.Client) ServiceOption {
 	}
 }
 
-// WithPromptTemplate sets the prompt template by name.
-func WithPromptTemplate(name string) ServiceOption {
-	return func(s *Service) {
-		s.promptBuilder = prompt.NewBuilder(prompt.WithTemplateName(name))
-	}
-}
-
 // WithPromptBuilder sets a custom prompt builder.
 func WithPromptBuilder(builder *prompt.Builder) ServiceOption {
 	return func(s *Service) {
@@ -70,7 +63,7 @@ func NewService(logger *log.Logger, factory ClientFactory, opts ...ServiceOption
 	s := &Service{
 		logger:        logger,
 		factory:       factory,
-		promptBuilder: prompt.NewBuilder(prompt.WithTemplate(prompt.DefaultIssueResponseTemplate)),
+		promptBuilder: prompt.NewBuilder(), // Template is required via options.
 		triggerPrefix: "@moribito",
 	}
 	for _, opt := range opts {

@@ -9,6 +9,7 @@ import (
 
 	"github.com/pirakansa/moribito/internal/githubapp"
 	"github.com/pirakansa/moribito/internal/opencode"
+	"github.com/pirakansa/moribito/internal/prompt"
 )
 
 // mockGitHubClient is a test double for githubapp.GitHubClient.
@@ -281,7 +282,11 @@ func TestProcessWithOpenCodeHealthy(t *testing.T) {
 		sessionID: "test-session-123",
 		response:  "This code looks good! No issues found.",
 	}
-	svc := NewService(logger, factory, WithOpenCodeClient(mockOC))
+	builder := prompt.NewBuilder(prompt.WithTemplate(prompt.Template{
+		Name:    "pr",
+		Content: "Title={{.Title}}\nDiff={{.Diff}}",
+	}))
+	svc := NewService(logger, factory, WithOpenCodeClient(mockOC), WithPromptBuilder(builder))
 
 	pr := PullRequest{
 		Number:         42,
@@ -312,15 +317,6 @@ func TestProcessWithOpenCodeHealthy(t *testing.T) {
 	}
 	if !strings.Contains(comment.body, "This code looks good") {
 		t.Errorf("expected comment to contain AI response, got: %s", comment.body)
-	}
-}
-
-func TestWithPromptTemplate(t *testing.T) {
-	logger := log.New(&bytes.Buffer{}, "", 0)
-	svc := NewService(logger, nil, WithPromptTemplate("pr-review-ja"))
-
-	if svc.promptBuilder == nil {
-		t.Fatal("expected promptBuilder to be set")
 	}
 }
 

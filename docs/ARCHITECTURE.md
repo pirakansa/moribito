@@ -57,7 +57,7 @@ internal/
 │   ├── session.go      # Session lifecycle management
 │   └── message.go      # Message sending/receiving
 ├── prompt/             # AI prompt templates
-│   ├── templates.go    # Built-in prompt templates (PR + Issue)
+│   ├── templates.go    # Template file loader
 │   └── builder.go      # Prompt construction with options
 ├── queue/              # In-memory job queue with worker pool
 ├── review/             # PR review service
@@ -154,24 +154,13 @@ Constructs prompts using customizable templates:
 
 ```go
 builder := prompt.NewBuilder(
-    prompt.WithTemplateName("pr-review-ja"),
+    prompt.WithTemplate(template),
     prompt.WithMaxDiffLength(50000),
 )
 prompt, err := builder.BuildPRReviewPrompt(ctx)
 ```
-
-Built-in templates:
-
-**PR Review:**
-- `pr-review` - Standard code review
-- `pr-review-concise` - Critical issues only
-- `pr-review-ja` - Japanese output
-- `pr-review-security` - Security focus
-
-**Issue Response:**
-- `issue-response` - Standard issue response
-- `issue-response-ja` - Japanese output
-- `issue-technical` - Technical troubleshooting
+Where `template` is loaded via `prompt.LoadTemplateFromFile(path)`.
+Template files are loaded from disk (see `docs/templates/` for samples).
 
 ### Job Queue
 
