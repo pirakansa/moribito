@@ -1,18 +1,17 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestLoadDefaults(t *testing.T) {
-	t.Setenv("APP_ADDR", "")
-	t.Setenv("GITHUB_API_BASE_URL", "")
-	t.Setenv("GITHUB_WEBHOOK_PATH", "")
-	t.Setenv("OPENCODE_HOST", "")
-	t.Setenv("OPENCODE_PORT", "")
-	t.Setenv("QUEUE_WORKERS", "")
-	t.Setenv("QUEUE_BUFFER", "")
-	t.Setenv("PR_REVIEW_TEMPLATE_PATH", "/tmp/pr.tmpl")
-	t.Setenv("ISSUE_RESPONSE_TEMPLATE_PATH", "/tmp/issue.tmpl")
-	t.Setenv("ISSUE_TRIGGER_PREFIX", "")
+	path := writeConfigFile(t, `{
+  "review": { "templatePath": "/tmp/pr.tmpl" },
+  "issue": { "responseTemplatePath": "/tmp/issue.tmpl" }
+}`)
+	t.Setenv("MORIBITO_CONFIG_PATH", path)
 
 	cfg, err := Load()
 	if err != nil {
@@ -33,6 +32,9 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.OpenCodePort != defaultOpenCodePort {
 		t.Fatalf("expected default opencode port %d, got %d", defaultOpenCodePort, cfg.OpenCodePort)
 	}
+	if cfg.OpenCodeLongTimeout != defaultOpenCodeLongTimeout {
+		t.Fatalf("expected default opencode long timeout %s, got %s", defaultOpenCodeLongTimeout, cfg.OpenCodeLongTimeout)
+	}
 	if cfg.QueueWorkers != defaultQueueWorkers {
 		t.Fatalf("expected default queue workers %d, got %d", defaultQueueWorkers, cfg.QueueWorkers)
 	}
@@ -42,18 +44,28 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.PRReviewTemplatePath != "/tmp/pr.tmpl" {
 		t.Fatalf("expected pr review template path %s, got %s", "/tmp/pr.tmpl", cfg.PRReviewTemplatePath)
 	}
+	if cfg.PRReviewModel != defaultOpenCodeModel {
+		t.Fatalf("expected pr review model %s, got %s", defaultOpenCodeModel, cfg.PRReviewModel)
+	}
+	if cfg.PRReviewMaxDiffLength != defaultPRReviewMaxDiffLen {
+		t.Fatalf("expected pr review max diff length %d, got %d", defaultPRReviewMaxDiffLen, cfg.PRReviewMaxDiffLength)
+	}
 	if cfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
 		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", cfg.IssueResponseTemplatePath)
+	}
+	if cfg.IssueResponseModel != defaultOpenCodeModel {
+		t.Fatalf("expected issue response model %s, got %s", defaultOpenCodeModel, cfg.IssueResponseModel)
 	}
 	if cfg.IssueTriggerPrefix != defaultIssueTriggerPrefix {
 		t.Fatalf("expected default issue trigger prefix %s, got %s", defaultIssueTriggerPrefix, cfg.IssueTriggerPrefix)
 	}
 }
 
-func TestLoadInvalidInt(t *testing.T) {
-	t.Setenv("GITHUB_APP_ID", "nope")
+func TestLoadInvalidJSON(t *testing.T) {
+	path := writeConfigFile(t, `{"opencode": {"port": "nope"}}`)
+	t.Setenv("MORIBITO_CONFIG_PATH", path)
 	if _, err := Load(); err == nil {
-		t.Fatalf("expected error for invalid app id")
+		t.Fatalf("expected error for invalid json")
 	}
 }
 
@@ -88,4 +100,14 @@ func TestValidateForWebhook(t *testing.T) {
 	if err := cfg.ValidateForWebhook(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+}
+
+func writeConfigFile(t *testing.T, content string) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	return path
 }

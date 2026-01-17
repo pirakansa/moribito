@@ -74,7 +74,7 @@ func run() error {
 		return err
 	}
 
-	healthClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
+	healthClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort, opencode.WithLongTimeout(cfg.OpenCodeLongTimeout))
 	srv := server.New(cfg, logger, jobQueue, reviewer, issueService, healthClient, cfg.QueueWorkers, cfg.QueueBuffer)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
@@ -139,11 +139,19 @@ func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.Serv
 	if err != nil {
 		return nil, nil, err
 	}
-	opts = append(opts, review.WithPromptBuilder(prompt.NewBuilder(prompt.WithTemplate(prTemplate))))
+	opts = append(opts, review.WithPromptBuilder(prompt.NewBuilder(
+		prompt.WithTemplate(prTemplate),
+		prompt.WithMaxDiffLength(cfg.PRReviewMaxDiffLength),
+	)))
 	logger.Printf("prompt: using PR review template %q", cfg.PRReviewTemplatePath)
+	logger.Printf("prompt: using max diff length %d", cfg.PRReviewMaxDiffLength)
+	if cfg.PRReviewModel != "" {
+		opts = append(opts, review.WithReviewModel(cfg.PRReviewModel))
+		logger.Printf("review: using model %q", cfg.PRReviewModel)
+	}
 
 	// Create OpenCode client
-	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
+	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort, opencode.WithLongTimeout(cfg.OpenCodeLongTimeout))
 
 	// Check if OpenCode server is available
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -174,6 +182,10 @@ func createIssueService(cfg config.Config, logger *log.Logger, factory *githubap
 	}
 	opts = append(opts, issue.WithPromptBuilder(prompt.NewBuilder(prompt.WithTemplate(issueTemplate))))
 	logger.Printf("prompt: using issue response template %q", cfg.IssueResponseTemplatePath)
+	if cfg.IssueResponseModel != "" {
+		opts = append(opts, issue.WithResponseModel(cfg.IssueResponseModel))
+		logger.Printf("issue: using model %q", cfg.IssueResponseModel)
+	}
 
 	// Set custom trigger prefix if configured
 	if cfg.IssueTriggerPrefix != "" {

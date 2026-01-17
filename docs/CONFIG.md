@@ -1,45 +1,65 @@
 # Configuration
 
-## Environment Variables
+Set the JSON config path via:
 
-### Server Configuration
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `MORIBITO_CONFIG_PATH` | **Yes** | Path to JSON config file |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `APP_ADDR` | `:8080` | Address to listen on |
-| `GITHUB_WEBHOOK_PATH` | `/webhook` | Webhook endpoint path |
-| `QUEUE_WORKERS` | `2` | Number of queue workers |
-| `QUEUE_BUFFER` | `100` | Queue buffer size |
+## JSON Format
 
-### GitHub App Configuration
+```json
+{
+  "server": {
+    "addr": ":8080",
+    "webhookPath": "/webhook"
+  },
+  "github": {
+    "appID": 123,
+    "installationID": 456,
+    "privateKeyPath": "/path/to/private-key.pem",
+    "webhookSecret": "secret",
+    "apiBaseURL": "https://api.github.com"
+  },
+  "opencode": {
+    "host": "127.0.0.1",
+    "port": 4096,
+    "longTimeoutSeconds": 600
+  },
+  "queue": {
+    "workers": 2,
+    "buffer": 100
+  },
+  "review": {
+    "templatePath": "docs/templates/pr-review.md.tmpl",
+    "model": "opencode/big-pickle",
+    "maxDiffLength": 50000
+  },
+  "issue": {
+    "responseTemplatePath": "docs/templates/issue-response.md.tmpl",
+    "responseModel": "opencode/big-pickle",
+    "triggerPrefix": "@moribito"
+  }
+}
+```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `GITHUB_APP_ID` | (required) | GitHub App ID |
-| `GITHUB_INSTALLATION_ID` | - | Installation ID (for CLI token command) |
-| `GITHUB_PRIVATE_KEY_PATH` | (required) | Path to private key (PEM format) |
-| `GITHUB_WEBHOOK_SECRET` | - | Webhook signature secret |
-| `GITHUB_API_BASE_URL` | `https://api.github.com` | GitHub API base URL |
+Defaults apply when fields are omitted. Set `review.maxDiffLength` to `0` to omit diffs entirely.
 
-### OpenCode Integration
+## Template Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `OPENCODE_HOST` | `127.0.0.1` | OpenCode server hostname |
-| `OPENCODE_PORT` | `4096` | OpenCode server port |
+### PR Review Templates
 
-The app automatically detects OpenCode availability at startup. If unavailable, AI review is disabled but the app continues to function normally.
+Available fields:
+`Title`, `Body`, `Head`, `Base`, `URL`, `Diff`, `Owner`, `Repo`, `RepoFullName`, `Number`
 
-### Prompt Templates
+### Issue Response Templates
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PR_REVIEW_TEMPLATE_PATH` | (required) | PR review prompt template file path |
-| `ISSUE_RESPONSE_TEMPLATE_PATH` | (required) | Issue response prompt template file path |
+Available fields:
+`Title`, `Number`, `Author`, `Body`, `URL`, `Comment`, `CommentAuthor`, `CommentID`, `Owner`, `Repo`, `RepoFullName`
 
-#### Sample Templates
+## Sample Templates
 
-##### PR Review Templates
+### PR Review Templates
 
 | File | Description |
 |------|-------------|
@@ -48,7 +68,7 @@ The app automatically detects OpenCode availability at startup. If unavailable, 
 | `docs/templates/pr-review-ja.md.tmpl` | Review output in Japanese |
 | `docs/templates/pr-review-security.md.tmpl` | Security-focused analysis |
 
-##### Issue Response Templates
+### Issue Response Templates
 
 | File | Description |
 |------|-------------|
@@ -56,10 +76,10 @@ The app automatically detects OpenCode availability at startup. If unavailable, 
 | `docs/templates/issue-response-ja.md.tmpl` | Issue response in Japanese |
 | `docs/templates/issue-technical.md.tmpl` | Technical troubleshooting focus |
 
-### Issue AI Response
+## Issue AI Response
 
 The app responds to issue comments that start with `@moribito`. When triggered:
-1. Adds 👀 reaction to acknowledge the comment
+1. Adds 👍 reaction to acknowledge the comment
 2. Sends the issue context to OpenCode for AI analysis
 3. Posts the AI response as a new comment
 
@@ -68,58 +88,9 @@ Example trigger:
 @moribito このエラーの原因を教えてください
 ```
 
-## Usage Examples
-
-### Basic Setup
+## Usage Example
 
 ```bash
-export GITHUB_APP_ID=123
-export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
-export PR_REVIEW_TEMPLATE_PATH=docs/templates/pr-review.md.tmpl
-export ISSUE_RESPONSE_TEMPLATE_PATH=docs/templates/issue-response.md.tmpl
-./bin/host/moribito
-```
-
-### With AI Review (OpenCode)
-
-```bash
-export GITHUB_APP_ID=123
-export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
-export OPENCODE_HOST=127.0.0.1
-export OPENCODE_PORT=4096
-export QUEUE_WORKERS=2
-export QUEUE_BUFFER=100
-export PR_REVIEW_TEMPLATE_PATH=docs/templates/pr-review-ja.md.tmpl
-export ISSUE_RESPONSE_TEMPLATE_PATH=docs/templates/issue-response-ja.md.tmpl
-./bin/host/moribito
-```
-
-### Full Configuration
-
-```bash
-export APP_ADDR=:8080
-export GITHUB_WEBHOOK_PATH=/webhook
-export GITHUB_APP_ID=123
-export GITHUB_INSTALLATION_ID=456
-export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
-export GITHUB_WEBHOOK_SECRET=secret
-export GITHUB_API_BASE_URL=https://api.github.com
-export OPENCODE_HOST=127.0.0.1
-export OPENCODE_PORT=4096
-export QUEUE_WORKERS=2
-export QUEUE_BUFFER=100
-export PR_REVIEW_TEMPLATE_PATH=docs/templates/pr-review.md.tmpl
-export ISSUE_RESPONSE_TEMPLATE_PATH=docs/templates/issue-response.md.tmpl
-./bin/host/moribito
-```
-
-### GitHub Enterprise Server
-
-```bash
-export GITHUB_API_BASE_URL=https://github.example.com/api/v3
-export GITHUB_APP_ID=123
-export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
-export PR_REVIEW_TEMPLATE_PATH=docs/templates/pr-review.md.tmpl
-export ISSUE_RESPONSE_TEMPLATE_PATH=docs/templates/issue-response.md.tmpl
+export MORIBITO_CONFIG_PATH=/path/to/moribito.json
 ./bin/host/moribito
 ```

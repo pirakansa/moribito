@@ -46,11 +46,10 @@ make build
 
 ### Configuration
 
-Set the required environment variables:
+Create a JSON config file and set its path:
 
 ```bash
-export GITHUB_APP_ID=123
-export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
+export MORIBITO_CONFIG_PATH=/path/to/moribito.json
 ```
 
 ### Run
@@ -63,34 +62,25 @@ The server starts on `:8080` with endpoints:
 - `GET /healthz` - Health check (JSON)
 - `POST /webhook` - GitHub webhook receiver
 
-## Environment Variables
+## Configuration
+
+Set the config file path via environment variable:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `APP_ADDR` | No | Listen address (default: `:8080`) |
-| `GITHUB_APP_ID` | **Yes** | GitHub App ID for JWT creation |
-| `GITHUB_PRIVATE_KEY_PATH` | **Yes** | Path to App private key (PEM) |
-| `GITHUB_INSTALLATION_ID` | No | Installation ID (for CLI token command) |
-| `GITHUB_WEBHOOK_SECRET` | No | Webhook signature secret |
-| `GITHUB_WEBHOOK_PATH` | No | Webhook endpoint path (default: `/webhook`) |
-| `GITHUB_API_BASE_URL` | No | API URL (default: `https://api.github.com`) |
-| `OPENCODE_HOST` | No | OpenCode server hostname (default: `127.0.0.1`) |
-| `OPENCODE_PORT` | No | OpenCode server port (default: `4096`) |
-| `QUEUE_WORKERS` | No | Queue worker count (default: `2`) |
-| `QUEUE_BUFFER` | No | Queue buffer size (default: `100`) |
-| `PR_REVIEW_TEMPLATE_PATH` | **Yes** | PR review prompt template file path |
-| `ISSUE_RESPONSE_TEMPLATE_PATH` | **Yes** | Issue response prompt template file path |
-| `ISSUE_TRIGGER_PREFIX` | No | Issue comment trigger prefix (default: `@moribito`) |
+| `MORIBITO_CONFIG_PATH` | **Yes** | Path to JSON config file |
+
+See `docs/CONFIG.md` for the JSON format and examples.
 
 ## PR Review Flow
 
 When a Pull Request is opened, the app follows this flow:
 
 ```
-PR Created → Webhook Received → Acknowledge (👀) → AI Review → Post Comment
+PR Created → Webhook Received → Acknowledge (👍) → AI Review → Post Comment
 ```
 
-1. **Acknowledge**: Adds 👀 (eyes) reaction to show the request was received
+1. **Acknowledge**: Adds 👍 (thumbs up) reaction to show the request was received
 2. **Fetch Diff**: Retrieves PR diff from GitHub API
 3. **AI Review**: Sends diff to OpenCode server for analysis (if available)
 4. **Post Comment**: Posts AI review as a PR comment
@@ -171,18 +161,14 @@ npx smee-client -u https://smee.io/<your-id> -p 8080 -P /webhook
 4. Start the app:
 
 ```bash
-export GITHUB_APP_ID=<your-app-id>
-export GITHUB_PRIVATE_KEY_PATH=<path-to-key.pem>
+export MORIBITO_CONFIG_PATH=/path/to/moribito.json
 ./bin/host/moribito
 ```
 
 ### Verify Installation Token
 
 ```bash
-export GITHUB_APP_ID=123
-export GITHUB_INSTALLATION_ID=456
-export GITHUB_PRIVATE_KEY_PATH=/path/to/private-key.pem
-
+export MORIBITO_CONFIG_PATH=/path/to/moribito.json
 ./bin/host/moribito --print-installation-token
 ```
 
@@ -199,7 +185,7 @@ sequenceDiagram
     App->>App: Generate JWT (App ID + Private Key)
     App->>API: Request Installation Token
     API-->>App: Installation Token
-    App->>API: Add reaction to PR (👀)
+    App->>API: Add reaction to PR (👍)
     App->>App: Execute review logic
 ```
 

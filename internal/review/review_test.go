@@ -88,6 +88,7 @@ type mockOpenCodeClient struct {
 	response     string
 	createCalled bool
 	deleteCalled bool
+	lastRequest  *opencode.SendMessageRequest
 }
 
 func (m *mockOpenCodeClient) IsHealthy(_ context.Context) bool {
@@ -99,7 +100,8 @@ func (m *mockOpenCodeClient) CreateSession(_ context.Context, _ *opencode.Create
 	return &opencode.Session{ID: m.sessionID}, nil
 }
 
-func (m *mockOpenCodeClient) SendMessage(_ context.Context, _ string, _ *opencode.SendMessageRequest) (*opencode.MessageWithParts, error) {
+func (m *mockOpenCodeClient) SendMessage(_ context.Context, _ string, req *opencode.SendMessageRequest) (*opencode.MessageWithParts, error) {
+	m.lastRequest = req
 	return &opencode.MessageWithParts{
 		Parts: []opencode.Part{{Type: "text", Text: m.response}},
 	}, nil
@@ -155,7 +157,7 @@ func TestOnPullRequestOpenedWithClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify acknowledge step: eyes reaction was added
+	// Verify acknowledge step: thumbs up reaction was added
 	if len(mockClient.reactions) != 1 {
 		t.Fatalf("expected 1 reaction, got %d", len(mockClient.reactions))
 	}
@@ -169,8 +171,8 @@ func TestOnPullRequestOpenedWithClient(t *testing.T) {
 	if r.number != 42 {
 		t.Errorf("expected number 42, got %d", r.number)
 	}
-	if r.reaction != "eyes" {
-		t.Errorf("expected reaction 'eyes', got '%s'", r.reaction)
+	if r.reaction != "+1" {
+		t.Errorf("expected reaction '+1', got '%s'", r.reaction)
 	}
 
 	// Verify logs show the complete flow
@@ -317,6 +319,50 @@ func TestProcessWithOpenCodeHealthy(t *testing.T) {
 	}
 	if !strings.Contains(comment.body, "This code looks good") {
 		t.Errorf("expected comment to contain AI response, got: %s", comment.body)
+	}
+}
+
+func TestProcessWithReviewModel(t *testing.T) {
+	logger := log.New(&bytes.Buffer{}, "test: ", 0)
+	mockClient := &mockGitHubClient{
+		diff: "+func hello() {}",
+	}
+	factory := &mockClientFactory{client: mockClient}
+	mockOC := &mockOpenCodeClient{
+		healthy:   true,
+		sessionID: "test-session-123",
+		response:  "Looks good.",
+	}
+	builder := prompt.NewBuilder(prompt.WithTemplate(prompt.Template{
+		Name:    "pr",
+		Content: "Title={{.Title}}\nDiff={{.Diff}}",
+	}))
+	svc := NewService(
+		logger,
+		factory,
+		WithOpenCodeClient(mockOC),
+		WithPromptBuilder(builder),
+		WithReviewModel("review-model"),
+	)
+
+	pr := PullRequest{
+		Number:         42,
+		RepoName:       "example/repo",
+		Action:         "opened",
+		InstallationID: 12345,
+	}
+
+	if err := svc.OnPullRequestOpened(context.Background(), pr); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if mockOC.lastRequest == nil {
+		t.Fatal("expected SendMessage request to be captured")
+	}
+	if mockOC.lastRequest.Model == nil {
+		t.Fatal("expected model to be set")
+	}
+	if mockOC.lastRequest.Model.ModelID != "review-model" {
+		t.Fatalf("expected model review-model, got %q", mockOC.lastRequest.Model.ModelID)
 	}
 }
 

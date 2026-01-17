@@ -25,20 +25,29 @@ type ClientFactory interface {
 	NewClient(ctx context.Context, installationID int64) (githubapp.GitHubClient, error)
 }
 
+// OpenCodeClient defines the OpenCode operations needed for issue responses.
+type OpenCodeClient interface {
+	IsHealthy(ctx context.Context) bool
+	CreateSession(ctx context.Context, req *opencode.CreateSessionRequest) (*opencode.Session, error)
+	SendMessage(ctx context.Context, sessionID string, req *opencode.SendMessageRequest) (*opencode.MessageWithParts, error)
+	DeleteSession(ctx context.Context, sessionID string) error
+}
+
 // Service handles AI-powered issue comment responses.
 type Service struct {
 	logger         *log.Logger
 	factory        ClientFactory
-	opencodeClient *opencode.Client
+	opencodeClient OpenCodeClient
 	promptBuilder  *prompt.Builder
 	triggerPrefix  string // Comment prefix to trigger AI response (e.g., "@moribito")
+	model          string
 }
 
 // ServiceOption configures the Service.
 type ServiceOption func(*Service)
 
 // WithOpenCodeClient sets the OpenCode client for AI responses.
-func WithOpenCodeClient(client *opencode.Client) ServiceOption {
+func WithOpenCodeClient(client OpenCodeClient) ServiceOption {
 	return func(s *Service) {
 		s.opencodeClient = client
 	}
@@ -55,6 +64,13 @@ func WithPromptBuilder(builder *prompt.Builder) ServiceOption {
 func WithTriggerPrefix(prefix string) ServiceOption {
 	return func(s *Service) {
 		s.triggerPrefix = prefix
+	}
+}
+
+// WithResponseModel sets a specific OpenCode model for issue responses.
+func WithResponseModel(model string) ServiceOption {
+	return func(s *Service) {
+		s.model = model
 	}
 }
 
@@ -137,7 +153,7 @@ func (s *Service) createClient(ctx context.Context, installationID int64) (githu
 }
 
 func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) error {
-	return client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, "eyes")
+	return client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, "+1")
 }
 
 func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) error {
@@ -157,6 +173,9 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ev
 		Comment:       s.ExtractQuestion(event.CommentBody),
 		CommentAuthor: event.CommentAuthor,
 		CommentID:     event.CommentID,
+		Owner:         event.Owner,
+		Repo:          event.Repo,
+		RepoFullName:  event.Owner + "/" + event.Repo,
 	}
 
 	// Build prompt
@@ -174,7 +193,11 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ev
 
 	// Post response as comment
 	formattedResponse := s.promptBuilder.FormatIssueResponse(response)
-	if err := client.AddIssueComment(ctx, event.Owner, event.Repo, event.IssueNumber, formattedResponse); err != nil {
+	commentClient, err := s.createClient(ctx, event.InstallationID)
+	if err != nil {
+		return fmt.Errorf("refresh client: %w", err)
+	}
+	if err := commentClient.AddIssueComment(ctx, event.Owner, event.Repo, event.IssueNumber, formattedResponse); err != nil {
 		return fmt.Errorf("post comment: %w", err)
 	}
 
@@ -196,7 +219,11 @@ func (s *Service) requestAIResponse(ctx context.Context, promptText string) (str
 	}()
 
 	// Send prompt and get response
-	msg, err := s.opencodeClient.SendMessage(ctx, session.ID, opencode.NewTextMessageRequest(promptText))
+	req := opencode.NewTextMessageRequest(promptText)
+	if s.model != "" {
+		req = opencode.NewTextMessageRequestWithModel(promptText, s.model)
+	}
+	msg, err := s.opencodeClient.SendMessage(ctx, session.ID, req)
 	if err != nil {
 		return "", fmt.Errorf("send message: %w", err)
 	}

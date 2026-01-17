@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -38,15 +39,21 @@ type MessageWithParts struct {
 	Parts []Part  `json:"parts"`
 }
 
+// ModelRef identifies a model in the OpenCode server.
+type ModelRef struct {
+	ProviderID string `json:"providerID,omitempty"`
+	ModelID    string `json:"modelID,omitempty"`
+}
+
 // SendMessageRequest represents the request to send a message.
 type SendMessageRequest struct {
-	MessageID string `json:"messageID,omitempty"` // Optional: continue from a specific message
-	Model     string `json:"model,omitempty"`     // Optional: model to use
-	Agent     string `json:"agent,omitempty"`     // Optional: agent to use
-	NoReply   bool   `json:"noReply,omitempty"`   // If true, don't wait for response
-	System    string `json:"system,omitempty"`    // Optional: system prompt override
-	Tools     []any  `json:"tools,omitempty"`     // Optional: tools to use
-	Parts     []Part `json:"parts"`               // Message parts (at minimum, text)
+	MessageID string    `json:"messageID,omitempty"` // Optional: continue from a specific message
+	Model     *ModelRef `json:"model,omitempty"`     // Optional: model to use
+	Agent     string    `json:"agent,omitempty"`     // Optional: agent to use
+	NoReply   bool      `json:"noReply,omitempty"`   // If true, don't wait for response
+	System    string    `json:"system,omitempty"`    // Optional: system prompt override
+	Tools     []any     `json:"tools,omitempty"`     // Optional: tools to use
+	Parts     []Part    `json:"parts"`               // Message parts (at minimum, text)
 }
 
 // NewTextMessageRequest creates a simple text message request.
@@ -64,7 +71,7 @@ func NewTextMessageRequest(text string) *SendMessageRequest {
 // NewTextMessageRequestWithModel creates a text message request with a specific model.
 func NewTextMessageRequestWithModel(text, model string) *SendMessageRequest {
 	return &SendMessageRequest{
-		Model: model,
+		Model: modelRefFromString(model),
 		Parts: []Part{
 			{
 				Type: "text",
@@ -85,6 +92,18 @@ func NewTextMessageRequestWithAgent(text, agent string) *SendMessageRequest {
 			},
 		},
 	}
+}
+
+func modelRefFromString(model string) *ModelRef {
+	trimmed := strings.TrimSpace(model)
+	if trimmed == "" {
+		return nil
+	}
+	parts := strings.SplitN(trimmed, "/", 2)
+	if len(parts) == 2 {
+		return &ModelRef{ProviderID: parts[0], ModelID: parts[1]}
+	}
+	return &ModelRef{ModelID: trimmed}
 }
 
 // ListMessages returns all messages in a session.
@@ -120,7 +139,7 @@ func (c *Client) GetMessage(ctx context.Context, sessionID, messageID string) (*
 func (c *Client) SendMessage(ctx context.Context, sessionID string, req *SendMessageRequest) (*MessageWithParts, error) {
 	var msg MessageWithParts
 	// Use longer timeout for message requests as AI processing can take time
-	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/message", req, &msg, LongTimeout); err != nil {
+	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/message", req, &msg, c.longTimeout); err != nil {
 		return nil, fmt.Errorf("send message to session %s: %w", sessionID, err)
 	}
 	return &msg, nil
@@ -138,18 +157,18 @@ func (c *Client) SendMessageAsync(ctx context.Context, sessionID string, req *Se
 
 // CommandRequest represents a request to execute a slash command.
 type CommandRequest struct {
-	MessageID string `json:"messageID,omitempty"`
-	Agent     string `json:"agent,omitempty"`
-	Model     string `json:"model,omitempty"`
-	Command   string `json:"command"`   // The slash command (e.g., "compact", "clear")
-	Arguments string `json:"arguments"` // Command arguments
+	MessageID string    `json:"messageID,omitempty"`
+	Agent     string    `json:"agent,omitempty"`
+	Model     *ModelRef `json:"model,omitempty"`
+	Command   string    `json:"command"`   // The slash command (e.g., "compact", "clear")
+	Arguments string    `json:"arguments"` // Command arguments
 }
 
 // ExecuteCommand executes a slash command in a session.
 // Endpoint: POST /session/:id/command
 func (c *Client) ExecuteCommand(ctx context.Context, sessionID string, req *CommandRequest) (*MessageWithParts, error) {
 	var msg MessageWithParts
-	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/command", req, &msg, LongTimeout); err != nil {
+	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/command", req, &msg, c.longTimeout); err != nil {
 		return nil, fmt.Errorf("execute command in session %s: %w", sessionID, err)
 	}
 	return &msg, nil
@@ -157,16 +176,16 @@ func (c *Client) ExecuteCommand(ctx context.Context, sessionID string, req *Comm
 
 // ShellRequest represents a request to run a shell command.
 type ShellRequest struct {
-	Agent   string `json:"agent"`
-	Model   string `json:"model,omitempty"`
-	Command string `json:"command"`
+	Agent   string    `json:"agent"`
+	Model   *ModelRef `json:"model,omitempty"`
+	Command string    `json:"command"`
 }
 
 // RunShell runs a shell command in a session.
 // Endpoint: POST /session/:id/shell
 func (c *Client) RunShell(ctx context.Context, sessionID string, req *ShellRequest) (*MessageWithParts, error) {
 	var msg MessageWithParts
-	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/shell", req, &msg, LongTimeout); err != nil {
+	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/shell", req, &msg, c.longTimeout); err != nil {
 		return nil, fmt.Errorf("run shell in session %s: %w", sessionID, err)
 	}
 	return &msg, nil

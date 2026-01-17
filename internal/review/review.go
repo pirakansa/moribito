@@ -47,6 +47,7 @@ type Service struct {
 	clientFactory  ClientFactory
 	opencodeClient OpenCodeClient
 	promptBuilder  *prompt.Builder
+	model          string
 }
 
 // ServiceOption configures the Service.
@@ -66,6 +67,13 @@ func WithPromptBuilder(builder *prompt.Builder) ServiceOption {
 	}
 }
 
+// WithReviewModel sets a specific OpenCode model for PR reviews.
+func WithReviewModel(model string) ServiceOption {
+	return func(s *Service) {
+		s.model = model
+	}
+}
+
 // NewService creates a new review Service.
 func NewService(logger *log.Logger, clientFactory ClientFactory, opts ...ServiceOption) *Service {
 	s := &Service{
@@ -81,7 +89,7 @@ func NewService(logger *log.Logger, clientFactory ClientFactory, opts ...Service
 
 // OnPullRequestOpened handles the event when a new pull request is created.
 // Flow:
-//  1. Acknowledge receipt with 👀 reaction
+//  1. Acknowledge receipt with 👍 reaction
 //  2. Process the pull request (review, analysis, etc.)
 //  3. Post results (comments, status, etc.)
 func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error {
@@ -110,29 +118,29 @@ func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error
 	}
 
 	// Step 2: Process - Execute the actual review logic
-	if err := s.process(ctx, client, owner, repo, pr.Number); err != nil {
+	if err := s.process(ctx, client, owner, repo, pr.Number, pr.InstallationID); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// acknowledge adds 👀 (eyes) reaction to indicate the request was received.
+// acknowledge adds 👍 (thumbs up) reaction to indicate the request was received.
 func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int) error {
 	s.logger.Printf("review: acknowledging PR repo=%s/%s number=%d", owner, repo, number)
 
-	if err := client.AddIssueReaction(ctx, owner, repo, number, "eyes"); err != nil {
-		s.logger.Printf("review: failed to add eyes reaction: %v", err)
+	if err := client.AddIssueReaction(ctx, owner, repo, number, "+1"); err != nil {
+		s.logger.Printf("review: failed to add thumbs up reaction: %v", err)
 		return err
 	}
 
-	s.logger.Printf("review: acknowledged PR with eyes reaction")
+	s.logger.Printf("review: acknowledged PR with thumbs up reaction")
 	return nil
 }
 
 // process executes the main review logic for the pull request.
 // This is where the actual analysis, review, or automation happens.
-func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int) error {
+func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int, installationID int64) error {
 	s.logger.Printf("review: processing PR repo=%s/%s number=%d", owner, repo, number)
 
 	// Step 1: Fetch PR details and diff
@@ -174,7 +182,12 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ow
 
 	// Step 4: Post review comment
 	if reviewComment != "" {
-		if err := client.AddIssueComment(ctx, owner, repo, number, reviewComment); err != nil {
+		commentClient, err := s.clientFactory.NewClient(ctx, installationID)
+		if err != nil {
+			s.logger.Printf("review: failed to refresh client: %v", err)
+			return err
+		}
+		if err := commentClient.AddIssueComment(ctx, owner, repo, number, reviewComment); err != nil {
 			s.logger.Printf("review: failed to post review comment: %v", err)
 			return err
 		}
@@ -205,19 +218,27 @@ func (s *Service) requestAIReview(ctx context.Context, prInfo *githubapp.PullReq
 
 	// Build the review prompt using the prompt builder
 	reviewPrompt, err := s.promptBuilder.BuildPRReviewPrompt(prompt.PRReviewContext{
-		Title: prInfo.Title,
-		Body:  prInfo.Body,
-		Head:  prInfo.Head,
-		Base:  prInfo.Base,
-		URL:   prInfo.HTMLURL,
-		Diff:  diff,
+		Title:        prInfo.Title,
+		Body:         prInfo.Body,
+		Head:         prInfo.Head,
+		Base:         prInfo.Base,
+		URL:          prInfo.HTMLURL,
+		Diff:         diff,
+		Owner:        owner,
+		Repo:         repo,
+		RepoFullName: owner + "/" + repo,
+		Number:       number,
 	})
 	if err != nil {
 		return "", fmt.Errorf("build prompt: %w", err)
 	}
 
 	// Send message and wait for response
-	resp, err := s.opencodeClient.SendMessage(ctx, session.ID, opencode.NewTextMessageRequest(reviewPrompt))
+	req := opencode.NewTextMessageRequest(reviewPrompt)
+	if s.model != "" {
+		req = opencode.NewTextMessageRequestWithModel(reviewPrompt, s.model)
+	}
+	resp, err := s.opencodeClient.SendMessage(ctx, session.ID, req)
 	if err != nil {
 		return "", fmt.Errorf("send message: %w", err)
 	}
