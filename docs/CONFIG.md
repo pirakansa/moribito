@@ -38,10 +38,11 @@ Set the JSON config path via:
   "prComment": {
     "templatePath": "docs/templates/pr-response-comment.md.tmpl",
     "model": "opencode/big-pickle",
-    "maxDiffLength": 50000
+    "maxDiffLength": 50000,
+    "triggerPrefix": "@moribito"
   },
-  "issue": {
-    "responseTemplatePath": "docs/templates/issue-response.md.tmpl",
+  "issueComment": {
+    "templatePath": "docs/templates/issue-response.md.tmpl",
     "responseModel": "opencode/big-pickle",
     "triggerPrefix": "@moribito"
   }

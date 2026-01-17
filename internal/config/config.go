@@ -38,6 +38,7 @@ type Config struct {
 	PRCommentTemplatePath  string // PR comment prompt template file path
 	PRCommentModel         string // OpenCode model for PR comment response (optional)
 	PRCommentMaxDiffLength int    // Max diff length for PR comment prompt (0 disables diff)
+	PRCommentTriggerPrefix string // Comment prefix to trigger PR comment response (default: @moribito)
 
 	// Issue response configuration
 	IssueResponseTemplatePath string // Issue response prompt template file path
@@ -90,6 +91,7 @@ func Load() (Config, error) {
 		PROpenMaxDiffLength:    defaultPROpenMaxDiffLen,
 		PRCommentModel:         defaultOpenCodeModel,
 		PRCommentMaxDiffLength: defaultPRCommentMaxDiffLen,
+		PRCommentTriggerPrefix: defaultIssueTriggerPrefix,
 		IssueResponseModel:     defaultOpenCodeModel,
 		IssueTriggerPrefix:     defaultIssueTriggerPrefix,
 	}
@@ -148,14 +150,17 @@ func Load() (Config, error) {
 	if fileCfg.PRComment.MaxDiffLength != nil {
 		cfg.PRCommentMaxDiffLength = *fileCfg.PRComment.MaxDiffLength
 	}
-	if fileCfg.Issue.ResponseTemplatePath != "" {
-		cfg.IssueResponseTemplatePath = fileCfg.Issue.ResponseTemplatePath
+	if fileCfg.PRComment.TriggerPrefix != "" {
+		cfg.PRCommentTriggerPrefix = fileCfg.PRComment.TriggerPrefix
 	}
-	if fileCfg.Issue.ResponseModel != "" {
-		cfg.IssueResponseModel = fileCfg.Issue.ResponseModel
+	if fileCfg.IssueComment.TemplatePath != "" {
+		cfg.IssueResponseTemplatePath = fileCfg.IssueComment.TemplatePath
 	}
-	if fileCfg.Issue.TriggerPrefix != "" {
-		cfg.IssueTriggerPrefix = fileCfg.Issue.TriggerPrefix
+	if fileCfg.IssueComment.ResponseModel != "" {
+		cfg.IssueResponseModel = fileCfg.IssueComment.ResponseModel
+	}
+	if fileCfg.IssueComment.TriggerPrefix != "" {
+		cfg.IssueTriggerPrefix = fileCfg.IssueComment.TriggerPrefix
 	}
 
 	return cfg, nil
@@ -187,7 +192,7 @@ func (c Config) ValidateForWebhook() error {
 		return fmt.Errorf("prOpen.templatePath is required")
 	}
 	if strings.TrimSpace(c.IssueResponseTemplatePath) == "" {
-		return fmt.Errorf("issue.responseTemplatePath is required")
+		return fmt.Errorf("issueComment.templatePath is required")
 	}
 	return nil
 }
@@ -222,10 +227,11 @@ type fileConfig struct {
 		TemplatePath  string `json:"templatePath"`
 		Model         string `json:"model"`
 		MaxDiffLength *int   `json:"maxDiffLength"`
+		TriggerPrefix string `json:"triggerPrefix"`
 	} `json:"prComment"`
-	Issue struct {
-		ResponseTemplatePath string `json:"responseTemplatePath"`
-		ResponseModel        string `json:"responseModel"`
-		TriggerPrefix        string `json:"triggerPrefix"`
-	} `json:"issue"`
+	IssueComment struct {
+		TemplatePath  string `json:"templatePath"`
+		ResponseModel string `json:"responseModel"`
+		TriggerPrefix string `json:"triggerPrefix"`
+	} `json:"issueComment"`
 }

@@ -82,7 +82,7 @@ func TestHandlePullRequestOpened(t *testing.T) {
 
 func TestHandleIssueComment(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleIssueComment(logger, nil, nil)
+	handler := HandleIssueComment(logger, nil, nil, nil)
 	body, err := readFixture("issue_comment.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)

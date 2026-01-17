@@ -9,8 +9,8 @@ import (
 func TestLoadDefaults(t *testing.T) {
 	path := writeConfigFile(t, `{
 	"prOpen": { "templatePath": "/tmp/pr-open.tmpl" },
-	"prComment": { "templatePath": "/tmp/pr-comment.tmpl" },
-	"issue": { "responseTemplatePath": "/tmp/issue.tmpl" }
+	"prComment": { "templatePath": "/tmp/pr-comment.tmpl", "triggerPrefix": "@review" },
+	"issueComment": { "templatePath": "/tmp/issue.tmpl" }
 }`)
 	t.Setenv("MORIBITO_CONFIG_PATH", path)
 
@@ -59,6 +59,9 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.PRCommentMaxDiffLength != defaultPRCommentMaxDiffLen {
 		t.Fatalf("expected pr comment max diff length %d, got %d", defaultPRCommentMaxDiffLen, cfg.PRCommentMaxDiffLength)
+	}
+	if cfg.PRCommentTriggerPrefix != "@review" {
+		t.Fatalf("expected pr comment trigger prefix %s, got %s", "@review", cfg.PRCommentTriggerPrefix)
 	}
 	if cfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
 		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", cfg.IssueResponseTemplatePath)

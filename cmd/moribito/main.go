@@ -75,7 +75,12 @@ func run() error {
 	}
 
 	healthClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort, opencode.WithLongTimeout(cfg.OpenCodeLongTimeout))
-	srv := server.New(cfg, logger, jobQueue, reviewer, issueService, healthClient, cfg.QueueWorkers, cfg.QueueBuffer)
+	prCommentService, err := createPRCommentService(cfg, logger, clientFactory, ocClient)
+	if err != nil {
+		return err
+	}
+
+	srv := server.New(cfg, logger, jobQueue, reviewer, issueService, prCommentService, healthClient, cfg.QueueWorkers, cfg.QueueBuffer)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           srv.Handler(),
@@ -194,4 +199,32 @@ func createIssueService(cfg config.Config, logger *log.Logger, factory *githubap
 	}
 
 	return issue.NewService(logger, factory, opts...), nil
+}
+
+func createPRCommentService(cfg config.Config, logger *log.Logger, factory *githubapp.DefaultClientFactory, ocClient *opencode.Client) (*review.PRCommentService, error) {
+	var opts []review.PRCommentOption
+	if ocClient != nil {
+		opts = append(opts, review.WithCommentOpenCodeClient(ocClient))
+	}
+
+	commentTemplate, err := prompt.LoadTemplateFromFile(cfg.PRCommentTemplatePath)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, review.WithCommentPromptBuilder(prompt.NewBuilder(
+		prompt.WithTemplate(commentTemplate),
+		prompt.WithMaxDiffLength(cfg.PRCommentMaxDiffLength),
+	)))
+	logger.Printf("prompt: using PR comment template %q", cfg.PRCommentTemplatePath)
+	logger.Printf("prompt: using PR comment max diff length %d", cfg.PRCommentMaxDiffLength)
+	if cfg.PRCommentModel != "" {
+		opts = append(opts, review.WithCommentModel(cfg.PRCommentModel))
+		logger.Printf("pr-comment: using model %q", cfg.PRCommentModel)
+	}
+	if cfg.PRCommentTriggerPrefix != "" {
+		opts = append(opts, review.WithCommentTriggerPrefix(cfg.PRCommentTriggerPrefix))
+		logger.Printf("pr-comment: using trigger prefix %q", cfg.PRCommentTriggerPrefix)
+	}
+
+	return review.NewPRCommentService(logger, factory, opts...), nil
 }
