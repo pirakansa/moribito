@@ -72,18 +72,19 @@ Set the config file path via environment variable:
 
 See `docs/CONFIG.md` for the JSON format and examples.
 
-## PR Review Flow
+## PR Open Flow
 
 When a Pull Request is opened, the app follows this flow:
 
 ```
-PR Created → Webhook Received → Acknowledge (👍) → AI Review → Post Comment
+PR Created → Webhook Received → Acknowledge (👀) → AI Review → Post Comment → Acknowledge (👍/😕)
 ```
 
-1. **Acknowledge**: Adds 👍 (thumbs up) reaction to show the request was received
+1. **Acknowledge**: Adds 👀 (eyes) reaction to show the request was received
 2. **Fetch Diff**: Retrieves PR diff from GitHub API
 3. **AI Review**: Sends diff to OpenCode server for analysis (if available)
 4. **Post Comment**: Posts AI review as a PR comment
+5. **Complete**: Adds 👍 on success, 😕 if AI failed
 
 ### Prompt Templates
 
@@ -91,10 +92,11 @@ Prompt templates are loaded from files. Sample templates are available under `do
 
 | File | Description |
 |------|-------------|
-| `docs/templates/pr-review.md.tmpl` | Standard code review |
-| `docs/templates/pr-review-concise.md.tmpl` | Brief review focusing on critical issues |
-| `docs/templates/pr-review-ja.md.tmpl` | Review output in Japanese |
-| `docs/templates/pr-review-security.md.tmpl` | Security-focused analysis |
+| `docs/templates/pr-response-open.md.tmpl` | Initial PR review |
+| `docs/templates/pr-response-open-concise.md.tmpl` | Brief review focusing on critical issues |
+| `docs/templates/pr-response-open-ja.md.tmpl` | Review output in Japanese |
+| `docs/templates/pr-response-open-security.md.tmpl` | Security-focused analysis |
+| `docs/templates/pr-response-comment.md.tmpl` | Re-review response for PR comments |
 | `docs/templates/issue-response.md.tmpl` | Standard issue comment response |
 | `docs/templates/issue-response-ja.md.tmpl` | Issue response in Japanese |
 | `docs/templates/issue-technical.md.tmpl` | Technical troubleshooting focus |
@@ -104,7 +106,7 @@ Prompt templates are loaded from files. Sample templates are available under `do
 The app responds to issue comments that start with `@moribito` (customizable via `ISSUE_TRIGGER_PREFIX`):
 
 ```
-User Comment → @moribito detected? → Acknowledge (👀) → AI Response → Post Comment
+User Comment → @moribito detected? → Acknowledge (👀) → AI Response → Post Comment → Acknowledge (👍/😕)
 ```
 
 ### How to Use
@@ -119,6 +121,7 @@ The bot will:
 1. Add 👀 reaction to acknowledge
 2. Analyze the issue context with AI
 3. Post a helpful response
+4. Add 👍 on success (😕 if AI failed)
 
 ## Architecture
 
@@ -185,8 +188,9 @@ sequenceDiagram
     App->>App: Generate JWT (App ID + Private Key)
     App->>API: Request Installation Token
     API-->>App: Installation Token
-    App->>API: Add reaction to PR (👍)
+    App->>API: Add reaction to PR (👀)
     App->>App: Execute review logic
+    App->>API: Add reaction to PR (👍/😕)
 ```
 
 ## Documentation

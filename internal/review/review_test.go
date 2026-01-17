@@ -157,9 +157,9 @@ func TestOnPullRequestOpenedWithClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify acknowledge step: thumbs up reaction was added
-	if len(mockClient.reactions) != 1 {
-		t.Fatalf("expected 1 reaction, got %d", len(mockClient.reactions))
+	// Verify acknowledge and completion reactions
+	if len(mockClient.reactions) != 2 {
+		t.Fatalf("expected 2 reactions, got %d", len(mockClient.reactions))
 	}
 	r := mockClient.reactions[0]
 	if r.owner != "example" {
@@ -171,8 +171,13 @@ func TestOnPullRequestOpenedWithClient(t *testing.T) {
 	if r.number != 42 {
 		t.Errorf("expected number 42, got %d", r.number)
 	}
-	if r.reaction != "+1" {
-		t.Errorf("expected reaction '+1', got '%s'", r.reaction)
+	if r.reaction != "eyes" {
+		t.Errorf("expected reaction 'eyes', got '%s'", r.reaction)
+	}
+
+	completion := mockClient.reactions[1]
+	if completion.reaction != "+1" {
+		t.Errorf("expected completion reaction '+1', got '%s'", completion.reaction)
 	}
 
 	// Verify logs show the complete flow

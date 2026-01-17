@@ -16,7 +16,7 @@ import (
 
 func TestHealthWithoutOpenCode(t *testing.T) {
 	cfg := config.Config{GitHubWebhookPath: "/webhook"}
-	srv := New(cfg, testLogger(), nil, nil, nil, nil, 3, 200)
+	srv := New(cfg, testLogger(), nil, nil, nil, nil, nil, 3, 200)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
@@ -61,7 +61,7 @@ func TestHealthWithOpenCode(t *testing.T) {
 
 	ocClient := opencode.NewClient(host, port)
 	cfg := config.Config{GitHubWebhookPath: "/webhook"}
-	srv := New(cfg, testLogger(), nil, nil, nil, ocClient, 2, 100)
+	srv := New(cfg, testLogger(), nil, nil, nil, nil, ocClient, 2, 100)
 
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()

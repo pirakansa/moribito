@@ -30,24 +30,35 @@ Set the JSON config path via:
     "workers": 2,
     "buffer": 100
   },
-  "review": {
-    "templatePath": "docs/templates/pr-review.md.tmpl",
+  "prOpen": {
+    "templatePath": "docs/templates/pr-response-open.md.tmpl",
     "model": "opencode/big-pickle",
     "maxDiffLength": 50000
   },
-  "issue": {
-    "responseTemplatePath": "docs/templates/issue-response.md.tmpl",
+  "prComment": {
+    "templatePath": "docs/templates/pr-response-comment.md.tmpl",
+    "model": "opencode/big-pickle",
+    "maxDiffLength": 50000,
+    "triggerPrefix": "@moribito"
+  },
+  "issueComment": {
+    "templatePath": "docs/templates/issue-response.md.tmpl",
     "responseModel": "opencode/big-pickle",
     "triggerPrefix": "@moribito"
   }
 }
 ```
 
-Defaults apply when fields are omitted. Set `review.maxDiffLength` to `0` to omit diffs entirely.
+Defaults apply when fields are omitted. Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely.
 
 ## Template Variables
 
-### PR Review Templates
+### PR Open Templates
+
+Available fields:
+`Title`, `Body`, `Head`, `Base`, `URL`, `Diff`, `Owner`, `Repo`, `RepoFullName`, `Number`
+
+### PR Comment Templates
 
 Available fields:
 `Title`, `Body`, `Head`, `Base`, `URL`, `Diff`, `Owner`, `Repo`, `RepoFullName`, `Number`
@@ -59,14 +70,20 @@ Available fields:
 
 ## Sample Templates
 
-### PR Review Templates
+### PR Open Templates
 
 | File | Description |
 |------|-------------|
-| `docs/templates/pr-review.md.tmpl` | Standard code review in English |
-| `docs/templates/pr-review-concise.md.tmpl` | Brief review focusing only on critical issues |
-| `docs/templates/pr-review-ja.md.tmpl` | Review output in Japanese |
-| `docs/templates/pr-review-security.md.tmpl` | Security-focused analysis |
+| `docs/templates/pr-response-open.md.tmpl` | Initial PR review in English |
+| `docs/templates/pr-response-open-concise.md.tmpl` | Brief review focusing only on critical issues |
+| `docs/templates/pr-response-open-ja.md.tmpl` | Review output in Japanese |
+| `docs/templates/pr-response-open-security.md.tmpl` | Security-focused analysis |
+
+### PR Comment Templates
+
+| File | Description |
+|------|-------------|
+| `docs/templates/pr-response-comment.md.tmpl` | Re-review response for PR comments |
 
 ### Issue Response Templates
 
@@ -79,9 +96,10 @@ Available fields:
 ## Issue AI Response
 
 The app responds to issue comments that start with `@moribito`. When triggered:
-1. Adds 👍 reaction to acknowledge the comment
+1. Adds 👀 reaction to acknowledge the comment
 2. Sends the issue context to OpenCode for AI analysis
 3. Posts the AI response as a new comment
+4. Adds 👍 on success (😕 if AI failed)
 
 Example trigger:
 ```

@@ -33,11 +33,11 @@ type Server struct {
 }
 
 // New creates a Server with the given configuration and dependencies.
-func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, reviewer review.Reviewer, issueService *issue.Service, ocClient *opencode.Client, queueWorkers, queueBuffer int) *Server {
+func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, reviewer review.Reviewer, issueService *issue.Service, prCommenter review.PRCommenter, ocClient *opencode.Client, queueWorkers, queueBuffer int) *Server {
 	return &Server{
 		cfg:          cfg,
 		logger:       logger,
-		handler:      webhook.NewRouter(logger, submitter, reviewer, issueService),
+		handler:      webhook.NewRouter(logger, submitter, reviewer, issueService, prCommenter),
 		opencode:     ocClient,
 		queueWorkers: queueWorkers,
 		queueBuffer:  queueBuffer,

@@ -13,9 +13,7 @@ import (
 
 	"github.com/pirakansa/moribito/internal/config"
 	"github.com/pirakansa/moribito/internal/githubapp"
-	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/opencode"
-	"github.com/pirakansa/moribito/internal/prompt"
 	"github.com/pirakansa/moribito/internal/queue"
 	"github.com/pirakansa/moribito/internal/review"
 	"github.com/pirakansa/moribito/internal/server"
@@ -75,7 +73,12 @@ func run() error {
 	}
 
 	healthClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort, opencode.WithLongTimeout(cfg.OpenCodeLongTimeout))
-	srv := server.New(cfg, logger, jobQueue, reviewer, issueService, healthClient, cfg.QueueWorkers, cfg.QueueBuffer)
+	prCommentService, err := createPRCommentService(cfg, logger, clientFactory, ocClient)
+	if err != nil {
+		return err
+	}
+
+	srv := server.New(cfg, logger, jobQueue, reviewer, issueService, prCommentService, healthClient, cfg.QueueWorkers, cfg.QueueBuffer)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           srv.Handler(),
@@ -106,92 +109,4 @@ func run() error {
 		}
 		return fmt.Errorf("listen: %w", err)
 	}
-}
-
-func printInstallationToken(cfg config.Config) error {
-	if err := cfg.ValidateForToken(); err != nil {
-		return err
-	}
-
-	appJWT, err := githubapp.CreateAppJWT(cfg.AppID, cfg.PrivateKeyPath, time.Now())
-	if err != nil {
-		return err
-	}
-
-	client := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-	token, err := githubapp.FetchInstallationToken(context.Background(), client, cfg.GitHubAPIBaseURL, appJWT, cfg.InstallationID)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(token.Token)
-	return nil
-}
-
-// createOpenCodeOptions creates review service options for OpenCode integration.
-// Returns options and the OpenCode client (nil if unavailable).
-func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.ServiceOption, *opencode.Client, error) {
-	var opts []review.ServiceOption
-
-	prTemplate, err := prompt.LoadTemplateFromFile(cfg.PRReviewTemplatePath)
-	if err != nil {
-		return nil, nil, err
-	}
-	opts = append(opts, review.WithPromptBuilder(prompt.NewBuilder(
-		prompt.WithTemplate(prTemplate),
-		prompt.WithMaxDiffLength(cfg.PRReviewMaxDiffLength),
-	)))
-	logger.Printf("prompt: using PR review template %q", cfg.PRReviewTemplatePath)
-	logger.Printf("prompt: using max diff length %d", cfg.PRReviewMaxDiffLength)
-	if cfg.PRReviewModel != "" {
-		opts = append(opts, review.WithReviewModel(cfg.PRReviewModel))
-		logger.Printf("review: using model %q", cfg.PRReviewModel)
-	}
-
-	// Create OpenCode client
-	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort, opencode.WithLongTimeout(cfg.OpenCodeLongTimeout))
-
-	// Check if OpenCode server is available
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if ocClient.IsHealthy(ctx) {
-		health, _ := ocClient.Health(ctx)
-		logger.Printf("opencode: connected to %s (version: %s)", ocClient.BaseURL(), health.Version)
-		opts = append(opts, review.WithOpenCodeClient(ocClient))
-		return opts, ocClient, nil
-	}
-
-	logger.Printf("opencode: server not available at %s, AI features disabled", ocClient.BaseURL())
-	return opts, nil, nil
-}
-
-// createIssueService creates the issue response service.
-// AI responses are disabled when OpenCode is not available, but reactions still work.
-func createIssueService(cfg config.Config, logger *log.Logger, factory *githubapp.DefaultClientFactory, ocClient *opencode.Client) (*issue.Service, error) {
-	var opts []issue.ServiceOption
-	if ocClient != nil {
-		opts = append(opts, issue.WithOpenCodeClient(ocClient))
-	}
-
-	issueTemplate, err := prompt.LoadTemplateFromFile(cfg.IssueResponseTemplatePath)
-	if err != nil {
-		return nil, err
-	}
-	opts = append(opts, issue.WithPromptBuilder(prompt.NewBuilder(prompt.WithTemplate(issueTemplate))))
-	logger.Printf("prompt: using issue response template %q", cfg.IssueResponseTemplatePath)
-	if cfg.IssueResponseModel != "" {
-		opts = append(opts, issue.WithResponseModel(cfg.IssueResponseModel))
-		logger.Printf("issue: using model %q", cfg.IssueResponseModel)
-	}
-
-	// Set custom trigger prefix if configured
-	if cfg.IssueTriggerPrefix != "" {
-		opts = append(opts, issue.WithTriggerPrefix(cfg.IssueTriggerPrefix))
-		logger.Printf("issue: using trigger prefix %q", cfg.IssueTriggerPrefix)
-	}
-
-	return issue.NewService(logger, factory, opts...), nil
 }

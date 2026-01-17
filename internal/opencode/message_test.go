@@ -105,6 +105,30 @@ func TestClient_SendMessageAsync(t *testing.T) {
 	}
 }
 
+func TestClient_GetMessage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.URL.Path, "/message/") || r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		msg := MessageWithParts{
+			Info:  Message{ID: "msg-123", Role: "assistant"},
+			Parts: []Part{{Type: "text", Text: "Detail"}},
+		}
+		_ = json.NewEncoder(w).Encode(msg)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	msg, err := c.GetMessage(context.Background(), "sess-123", "msg-123")
+	if err != nil {
+		t.Fatalf("GetMessage() error = %v", err)
+	}
+	if msg.Info.ID != "msg-123" {
+		t.Errorf("message ID = %q, want %q", msg.Info.ID, "msg-123")
+	}
+}
+
 func TestClient_ExecuteCommand(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasSuffix(r.URL.Path, "/command") || r.Method != http.MethodPost {
@@ -134,6 +158,37 @@ func TestClient_ExecuteCommand(t *testing.T) {
 	}
 	if !strings.Contains(ExtractTextFromResponse(resp), "compact") {
 		t.Error("ExecuteCommand() response should contain command name")
+	}
+}
+
+func TestClient_RunShell(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/shell") || r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+
+		var req ShellRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+
+		response := MessageWithParts{
+			Info:  Message{ID: "msg-shell", Role: "assistant"},
+			Parts: []Part{{Type: "text", Text: "Ran: " + req.Command}},
+		}
+		_ = json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	resp, err := c.RunShell(context.Background(), "sess-123", &ShellRequest{Command: "echo ok"})
+	if err != nil {
+		t.Fatalf("RunShell() error = %v", err)
+	}
+	if !strings.Contains(ExtractTextFromResponse(resp), "echo ok") {
+		t.Error("RunShell() response should contain command")
 	}
 }
 

@@ -107,6 +107,32 @@ func TestClient_GetSession(t *testing.T) {
 	}
 }
 
+func TestClient_UpdateSession(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasPrefix(r.URL.Path, "/session/") || r.Method != http.MethodPatch {
+			http.NotFound(w, r)
+			return
+		}
+		var req UpdateSessionRequest
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "bad request", http.StatusBadRequest)
+			return
+		}
+		session := Session{ID: "sess-123", Title: req.Title}
+		_ = json.NewEncoder(w).Encode(session)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	session, err := c.UpdateSession(context.Background(), "sess-123", &UpdateSessionRequest{Title: "Updated"})
+	if err != nil {
+		t.Fatalf("UpdateSession() error = %v", err)
+	}
+	if session.Title != "Updated" {
+		t.Errorf("session.Title = %q, want %q", session.Title, "Updated")
+	}
+}
+
 func TestClient_DeleteSession(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.HasPrefix(r.URL.Path, "/session/") || r.Method != http.MethodDelete {
@@ -121,6 +147,50 @@ func TestClient_DeleteSession(t *testing.T) {
 	err := c.DeleteSession(context.Background(), "sess-123")
 	if err != nil {
 		t.Fatalf("DeleteSession() error = %v", err)
+	}
+}
+
+func TestClient_GetSessionStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/session/status" || r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		status := map[string]SessionStatus{
+			"sess-1": {Running: true},
+		}
+		_ = json.NewEncoder(w).Encode(status)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	status, err := c.GetSessionStatus(context.Background())
+	if err != nil {
+		t.Fatalf("GetSessionStatus() error = %v", err)
+	}
+	if !status["sess-1"].Running {
+		t.Fatalf("expected sess-1 running status true")
+	}
+}
+
+func TestClient_GetSessionChildren(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/children") || r.Method != http.MethodGet {
+			http.NotFound(w, r)
+			return
+		}
+		children := []Session{{ID: "sess-child"}}
+		_ = json.NewEncoder(w).Encode(children)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	children, err := c.GetSessionChildren(context.Background(), "sess-123")
+	if err != nil {
+		t.Fatalf("GetSessionChildren() error = %v", err)
+	}
+	if len(children) != 1 {
+		t.Fatalf("GetSessionChildren() got %d children, want 1", len(children))
 	}
 }
 
@@ -219,5 +289,115 @@ func TestClient_ForkSession(t *testing.T) {
 	}
 	if session.ID != "sess-forked" {
 		t.Errorf("session.ID = %q, want %q", session.ID, "sess-forked")
+	}
+}
+
+func TestClient_ShareSession(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/share") || r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+		session := Session{ID: "sess-123", Share: &ShareInfo{URL: "https://share"}}
+		_ = json.NewEncoder(w).Encode(session)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	session, err := c.ShareSession(context.Background(), "sess-123")
+	if err != nil {
+		t.Fatalf("ShareSession() error = %v", err)
+	}
+	if session.Share == nil || session.Share.URL == "" {
+		t.Fatalf("expected share URL to be set")
+	}
+}
+
+func TestClient_UnshareSession(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/share") || r.Method != http.MethodDelete {
+			http.NotFound(w, r)
+			return
+		}
+		session := Session{ID: "sess-123", Share: nil}
+		_ = json.NewEncoder(w).Encode(session)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	session, err := c.UnshareSession(context.Background(), "sess-123")
+	if err != nil {
+		t.Fatalf("UnshareSession() error = %v", err)
+	}
+	if session.Share != nil {
+		t.Fatalf("expected share to be nil")
+	}
+}
+
+func TestClient_SummarizeSession(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/summarize") || r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(true)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	err := c.SummarizeSession(context.Background(), "sess-123", &SummarizeSessionRequest{ProviderID: "p", ModelID: "m"})
+	if err != nil {
+		t.Fatalf("SummarizeSession() error = %v", err)
+	}
+}
+
+func TestClient_RespondToPermission(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.URL.Path, "/permissions/") || r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(true)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	err := c.RespondToPermission(context.Background(), "sess-123", "perm-1", &PermissionResponse{Response: "allow"})
+	if err != nil {
+		t.Fatalf("RespondToPermission() error = %v", err)
+	}
+}
+
+func TestClient_RevertMessage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/revert") || r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(true)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	err := c.RevertMessage(context.Background(), "sess-123", &RevertMessageRequest{MessageID: "msg-1"})
+	if err != nil {
+		t.Fatalf("RevertMessage() error = %v", err)
+	}
+}
+
+func TestClient_UnrevertMessages(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.HasSuffix(r.URL.Path, "/unrevert") || r.Method != http.MethodPost {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(true)
+	}))
+	defer server.Close()
+
+	c := newTestClient(t, server)
+	err := c.UnrevertMessages(context.Background(), "sess-123")
+	if err != nil {
+		t.Fatalf("UnrevertMessages() error = %v", err)
 	}
 }
