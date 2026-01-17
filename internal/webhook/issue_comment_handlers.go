@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/pirakansa/moribito/internal/githubapp"
 	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/queue"
 	"github.com/pirakansa/moribito/internal/review"
@@ -27,7 +28,7 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter, issueService *i
 
 		// Handle comment created event for AI response
 		if payload.Action == "created" {
-			owner, repo, perr := parseRepoFullName(payload.Repository.FullName)
+			owner, repo, perr := githubapp.ParseRepoFullName(payload.Repository.FullName)
 			if perr != nil {
 				return fmt.Errorf("parse repo name: %w", perr)
 			}
