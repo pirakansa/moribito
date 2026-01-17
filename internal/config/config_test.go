@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestLoadDefaults(t *testing.T) {
@@ -79,6 +80,96 @@ func TestLoadInvalidJSON(t *testing.T) {
 	t.Setenv("MORIBITO_CONFIG_PATH", path)
 	if _, err := Load(); err == nil {
 		t.Fatalf("expected error for invalid json")
+	}
+}
+
+func TestLoadOverrides(t *testing.T) {
+	path := writeConfigFile(t, `{
+	"server": { "addr": ":9999", "webhookPath": "/hook" },
+	"github": {
+		"appID": 100,
+		"installationID": 200,
+		"privateKeyPath": "/tmp/key.pem",
+		"webhookSecret": "secret",
+		"apiBaseURL": "https://example.com"
+	},
+	"opencode": { "host": "opencode.local", "port": 1234, "longTimeoutSeconds": 120 },
+	"queue": { "workers": 5, "buffer": 200 },
+	"prOpen": { "templatePath": "/tmp/pr-open.tmpl", "model": "custom/open", "maxDiffLength": 123 },
+	"prComment": {
+		"templatePath": "/tmp/pr-comment.tmpl",
+		"model": "custom/comment",
+		"maxDiffLength": 321,
+		"triggerPrefix": "@bot"
+	},
+	"issueComment": {
+		"templatePath": "/tmp/issue.tmpl",
+		"responseModel": "custom/issue",
+		"triggerPrefix": "@issue"
+	}
+}`)
+	t.Setenv("MORIBITO_CONFIG_PATH", path)
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if cfg.Addr != ":9999" {
+		t.Fatalf("expected addr :9999, got %s", cfg.Addr)
+	}
+	if cfg.GitHubWebhookPath != "/hook" {
+		t.Fatalf("expected webhook path /hook, got %s", cfg.GitHubWebhookPath)
+	}
+	if cfg.AppID != 100 {
+		t.Fatalf("expected appID 100, got %d", cfg.AppID)
+	}
+	if cfg.InstallationID != 200 {
+		t.Fatalf("expected installationID 200, got %d", cfg.InstallationID)
+	}
+	if cfg.PrivateKeyPath != "/tmp/key.pem" {
+		t.Fatalf("expected privateKeyPath /tmp/key.pem, got %s", cfg.PrivateKeyPath)
+	}
+	if cfg.WebhookSecret != "secret" {
+		t.Fatalf("expected webhookSecret secret, got %s", cfg.WebhookSecret)
+	}
+	if cfg.GitHubAPIBaseURL != "https://example.com" {
+		t.Fatalf("expected apiBaseURL https://example.com, got %s", cfg.GitHubAPIBaseURL)
+	}
+	if cfg.OpenCodeHost != "opencode.local" {
+		t.Fatalf("expected opencode host opencode.local, got %s", cfg.OpenCodeHost)
+	}
+	if cfg.OpenCodePort != 1234 {
+		t.Fatalf("expected opencode port 1234, got %d", cfg.OpenCodePort)
+	}
+	if cfg.OpenCodeLongTimeout != 120*time.Second {
+		t.Fatalf("expected opencode long timeout 120s, got %s", cfg.OpenCodeLongTimeout)
+	}
+	if cfg.QueueWorkers != 5 {
+		t.Fatalf("expected queue workers 5, got %d", cfg.QueueWorkers)
+	}
+	if cfg.QueueBuffer != 200 {
+		t.Fatalf("expected queue buffer 200, got %d", cfg.QueueBuffer)
+	}
+	if cfg.PROpenModel != "custom/open" {
+		t.Fatalf("expected pr open model custom/open, got %s", cfg.PROpenModel)
+	}
+	if cfg.PROpenMaxDiffLength != 123 {
+		t.Fatalf("expected pr open max diff length 123, got %d", cfg.PROpenMaxDiffLength)
+	}
+	if cfg.PRCommentModel != "custom/comment" {
+		t.Fatalf("expected pr comment model custom/comment, got %s", cfg.PRCommentModel)
+	}
+	if cfg.PRCommentMaxDiffLength != 321 {
+		t.Fatalf("expected pr comment max diff length 321, got %d", cfg.PRCommentMaxDiffLength)
+	}
+	if cfg.PRCommentTriggerPrefix != "@bot" {
+		t.Fatalf("expected pr comment trigger prefix @bot, got %s", cfg.PRCommentTriggerPrefix)
+	}
+	if cfg.IssueResponseModel != "custom/issue" {
+		t.Fatalf("expected issue response model custom/issue, got %s", cfg.IssueResponseModel)
+	}
+	if cfg.IssueTriggerPrefix != "@issue" {
+		t.Fatalf("expected issue trigger prefix @issue, got %s", cfg.IssueTriggerPrefix)
 	}
 }
 

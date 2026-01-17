@@ -44,7 +44,7 @@ cmd/
 └── moribito/           # CLI entry point, server lifecycle
 
 internal/
-├── config/             # Environment variable loading & validation
+├── config/             # Configuration loading & validation
 ├── githubapp/          # GitHub API client, JWT, token management
 │   ├── client.go       # GitHubClient interface implementation
 │   ├── client_factory.go # Creates authenticated clients per installation
@@ -52,21 +52,34 @@ internal/
 │   ├── token.go        # Installation token fetching
 │   └── token_cache.go  # Token caching with auto-refresh
 ├── issue/              # Issue comment response service
-│   └── issue.go        # Trigger detection → AI Response → Comment
+│   ├── service.go      # Trigger detection → AI Response → Comment
+│   ├── process.go      # Issue prompt construction + posting
+│   ├── ai.go           # OpenCode request/response
+│   └── types.go        # Event and config types
 ├── opencode/           # OpenCode server API client
 │   ├── client.go       # HTTP client, health check, providers
-│   ├── session.go      # Session lifecycle management
-│   └── message.go      # Message sending/receiving
+│   ├── session_client.go # Session lifecycle management
+│   ├── session_types.go  # Session types/requests
+│   ├── message_client.go # Message sending/receiving
+│   ├── message_helpers.go # Message helpers
+│   └── message_types.go   # Message types/requests
 ├── prompt/             # AI prompt templates
 │   ├── templates.go    # Template file loader
 │   └── builder.go      # Prompt construction with options
 ├── queue/              # In-memory job queue with worker pool
 ├── review/             # PR review service
-│   └── review.go       # Acknowledge → AI Review → Comment → Complete flow
+│   ├── review_service.go # Acknowledge → AI Review → Comment → Complete flow
+│   ├── review_process.go # PR diff + OpenCode review
+│   ├── review_types.go   # Review types/options
+│   ├── comment_service.go # PR comment flow
+│   ├── comment_process.go # PR comment prompt + posting
+│   └── comment_types.go   # PR comment types/options
 ├── server/             # HTTP server and middleware
 └── webhook/            # Event router and handlers
     ├── router.go       # Event type dispatch
-    └── handlers.go     # Per-event handler functions
+    ├── helpers.go      # Common helpers
+    ├── payloads.go     # Event payload types
+    └── *_handlers.go   # Per-event handler functions
 
 test/
 └── fixtures/           # Webhook payload fixtures for tests
@@ -198,19 +211,19 @@ Installation Token  ──▶  GitHub API calls
 
 ### Adding New Event Handlers
 
-1. Add handler in `internal/webhook/handlers.go`
+1. Add handler in a new `internal/webhook/*_handlers.go` file
 2. Register in `internal/webhook/router.go`
 3. Add fixture in `test/fixtures/webhook/`
 
 ### Adding Review Logic
 
-Extend `internal/review/review.go`:
+Extend `internal/review/review_process.go`:
 
 ```go
-func (s *Service) process(ctx, client, owner, repo string, number int) error {
+func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int, installationID int64) (reviewOutcome, error) {
     // Fetch PR diff
     // Analyze code
     // Post review comments
-    return nil
+    return reviewOutcome{}, nil
 }
 ```
