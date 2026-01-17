@@ -96,9 +96,10 @@ Available fields:
 ## Issue AI Response
 
 The app responds to issue comments that start with `@moribito`. When triggered:
-1. Adds 👍 reaction to acknowledge the comment
+1. Adds 👀 reaction to acknowledge the comment
 2. Sends the issue context to OpenCode for AI analysis
 3. Posts the AI response as a new comment
+4. Adds 👍 on success (😕 if AI failed)
 
 Example trigger:
 ```

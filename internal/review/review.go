@@ -12,6 +12,12 @@ import (
 	"github.com/pirakansa/moribito/internal/prompt"
 )
 
+const (
+	reactionEyes     = "eyes"
+	reactionThumbsUp = "+1"
+	reactionConfused = "confused"
+)
+
 // PullRequest holds information about a pull request.
 type PullRequest struct {
 	Number         int
@@ -89,9 +95,10 @@ func NewService(logger *log.Logger, clientFactory ClientFactory, opts ...Service
 
 // OnPullRequestOpened handles the event when a new pull request is created.
 // Flow:
-//  1. Acknowledge receipt with 👍 reaction
+//  1. Acknowledge receipt with 👀 reaction
 //  2. Process the pull request (review, analysis, etc.)
 //  3. Post results (comments, status, etc.)
+//  4. Acknowledge completion with 👍 or 😕 based on AI outcome
 func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error {
 	s.logger.Printf("review: pull request opened repo=%s number=%d", pr.RepoName, pr.Number)
 
@@ -118,43 +125,67 @@ func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error
 	}
 
 	// Step 2: Process - Execute the actual review logic
-	if err := s.process(ctx, client, owner, repo, pr.Number, pr.InstallationID); err != nil {
+	outcome, err := s.process(ctx, client, owner, repo, pr.Number, pr.InstallationID)
+	if err != nil {
 		return err
 	}
+
+	// Step 3: Complete - Add 👍 or 😕 reaction based on AI outcome
+	s.complete(ctx, client, owner, repo, pr.Number, outcome)
 
 	return nil
 }
 
-// acknowledge adds 👍 (thumbs up) reaction to indicate the request was received.
+// acknowledge adds 👀 reaction to indicate the request was received.
 func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int) error {
 	s.logger.Printf("review: acknowledging PR repo=%s/%s number=%d", owner, repo, number)
 
-	if err := client.AddIssueReaction(ctx, owner, repo, number, "+1"); err != nil {
-		s.logger.Printf("review: failed to add thumbs up reaction: %v", err)
+	if err := client.AddIssueReaction(ctx, owner, repo, number, reactionEyes); err != nil {
+		s.logger.Printf("review: failed to add eyes reaction: %v", err)
 		return err
 	}
 
-	s.logger.Printf("review: acknowledged PR with thumbs up reaction")
+	s.logger.Printf("review: acknowledged PR with eyes reaction")
 	return nil
+}
+
+type reviewOutcome struct {
+	aiAttempted bool
+	aiSucceeded bool
+}
+
+func (s *Service) complete(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int, outcome reviewOutcome) {
+	reaction := reactionThumbsUp
+	if outcome.aiAttempted && !outcome.aiSucceeded {
+		reaction = reactionConfused
+	}
+
+	if err := client.AddIssueReaction(ctx, owner, repo, number, reaction); err != nil {
+		s.logger.Printf("review: failed to add completion reaction %q: %v", reaction, err)
+		return
+	}
+
+	s.logger.Printf("review: added completion reaction %q", reaction)
 }
 
 // process executes the main review logic for the pull request.
 // This is where the actual analysis, review, or automation happens.
-func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int, installationID int64) error {
+func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int, installationID int64) (reviewOutcome, error) {
+	outcome := reviewOutcome{}
 	s.logger.Printf("review: processing PR repo=%s/%s number=%d", owner, repo, number)
 
 	// Step 1: Fetch PR details and diff
 	prInfo, err := client.GetPullRequest(ctx, owner, repo, number)
 	if err != nil {
 		s.logger.Printf("review: failed to get PR details: %v", err)
-		return err
+		return outcome, err
 	}
 	s.logger.Printf("review: PR title=%q base=%s head=%s", prInfo.Title, prInfo.Base, prInfo.Head)
 
 	diff, err := client.GetPullRequestDiff(ctx, owner, repo, number)
 	if err != nil {
 		s.logger.Printf("review: failed to get PR diff: %v", err)
-		return err
+		return outcome, err
 	}
 	s.logger.Printf("review: fetched diff size=%d bytes", len(diff))
 
@@ -162,13 +193,13 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ow
 	if s.opencodeClient == nil {
 		s.logger.Printf("review: opencode client not configured, skipping AI review")
 		s.logger.Printf("review: processing complete (no AI) for PR repo=%s/%s number=%d", owner, repo, number)
-		return nil
+		return reviewOutcome{aiAttempted: false, aiSucceeded: true}, nil
 	}
 
 	if !s.opencodeClient.IsHealthy(ctx) {
 		s.logger.Printf("review: opencode server not available, skipping AI review")
 		s.logger.Printf("review: processing complete (no AI) for PR repo=%s/%s number=%d", owner, repo, number)
-		return nil
+		return reviewOutcome{aiAttempted: false, aiSucceeded: true}, nil
 	}
 
 	// Step 3: Create session and request AI review
@@ -177,25 +208,28 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ow
 		s.logger.Printf("review: AI review failed: %v", err)
 		// Don't fail the whole process if AI review fails
 		s.logger.Printf("review: continuing without AI review")
-		return nil
+		return reviewOutcome{aiAttempted: true, aiSucceeded: false}, nil
 	}
+
+	outcome.aiAttempted = true
+	outcome.aiSucceeded = true
 
 	// Step 4: Post review comment
 	if reviewComment != "" {
 		commentClient, err := s.clientFactory.NewClient(ctx, installationID)
 		if err != nil {
 			s.logger.Printf("review: failed to refresh client: %v", err)
-			return err
+			return outcome, err
 		}
 		if err := commentClient.AddIssueComment(ctx, owner, repo, number, reviewComment); err != nil {
 			s.logger.Printf("review: failed to post review comment: %v", err)
-			return err
+			return outcome, err
 		}
 		s.logger.Printf("review: posted AI review comment")
 	}
 
 	s.logger.Printf("review: processing complete for PR repo=%s/%s number=%d", owner, repo, number)
-	return nil
+	return outcome, nil
 }
 
 // requestAIReview sends the PR to OpenCode for AI-powered code review.

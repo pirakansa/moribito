@@ -13,6 +13,12 @@ import (
 	"github.com/pirakansa/moribito/internal/prompt"
 )
 
+const (
+	commentReactionEyes     = "eyes"
+	commentReactionThumbsUp = "+1"
+	commentReactionConfused = "confused"
+)
+
 // PRCommentEvent represents a pull request comment event.
 type PRCommentEvent struct {
 	InstallationID int64
@@ -104,11 +110,17 @@ func (s *PRCommentService) OnPullRequestComment(ctx context.Context, event PRCom
 		return fmt.Errorf("create client: %w", err)
 	}
 
-	if err := client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, "+1"); err != nil {
+	if err := client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, commentReactionEyes); err != nil {
 		s.logger.Printf("pr-comment: failed to acknowledge comment: %v", err)
 	}
 
-	return s.process(ctx, client, event)
+	outcome, err := s.process(ctx, client, event)
+	if err != nil {
+		return err
+	}
+
+	s.complete(ctx, client, event, outcome)
+	return nil
 }
 
 func (s *PRCommentService) createClient(ctx context.Context, installationID int64) (githubapp.GitHubClient, error) {
@@ -118,20 +130,39 @@ func (s *PRCommentService) createClient(ctx context.Context, installationID int6
 	return s.factory.NewClient(ctx, installationID)
 }
 
-func (s *PRCommentService) process(ctx context.Context, client githubapp.GitHubClient, event PRCommentEvent) error {
+type commentOutcome struct {
+	aiAttempted bool
+	aiSucceeded bool
+}
+
+func (s *PRCommentService) complete(ctx context.Context, client githubapp.GitHubClient, event PRCommentEvent, outcome commentOutcome) {
+	reaction := commentReactionThumbsUp
+	if outcome.aiAttempted && !outcome.aiSucceeded {
+		reaction = commentReactionConfused
+	}
+
+	if err := client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, reaction); err != nil {
+		s.logger.Printf("pr-comment: failed to add completion reaction %q: %v", reaction, err)
+		return
+	}
+
+	s.logger.Printf("pr-comment: added completion reaction %q", reaction)
+}
+
+func (s *PRCommentService) process(ctx context.Context, client githubapp.GitHubClient, event PRCommentEvent) (commentOutcome, error) {
 	if s.opencodeClient == nil || !s.opencodeClient.IsHealthy(ctx) {
 		s.logger.Printf("pr-comment: opencode not available, skipping AI response")
-		return nil
+		return commentOutcome{aiAttempted: false, aiSucceeded: true}, nil
 	}
 
 	prInfo, err := client.GetPullRequest(ctx, event.Owner, event.Repo, event.Number)
 	if err != nil {
-		return fmt.Errorf("get pull request: %w", err)
+		return commentOutcome{aiAttempted: false, aiSucceeded: false}, fmt.Errorf("get pull request: %w", err)
 	}
 
 	diff, err := client.GetPullRequestDiff(ctx, event.Owner, event.Repo, event.Number)
 	if err != nil {
-		return fmt.Errorf("get pull request diff: %w", err)
+		return commentOutcome{aiAttempted: false, aiSucceeded: false}, fmt.Errorf("get pull request diff: %w", err)
 	}
 
 	promptText, err := s.promptBuilder.BuildPRReviewPrompt(prompt.PRReviewContext{
@@ -147,26 +178,26 @@ func (s *PRCommentService) process(ctx context.Context, client githubapp.GitHubC
 		Number:       event.Number,
 	})
 	if err != nil {
-		return fmt.Errorf("build prompt: %w", err)
+		return commentOutcome{aiAttempted: false, aiSucceeded: false}, fmt.Errorf("build prompt: %w", err)
 	}
 
 	response, err := s.requestAIResponse(ctx, promptText, event)
 	if err != nil {
 		s.logger.Printf("pr-comment: AI response failed: %v", err)
-		return nil
+		return commentOutcome{aiAttempted: true, aiSucceeded: false}, nil
 	}
 
 	formattedResponse := s.promptBuilder.FormatReviewComment(response)
 	commentClient, err := s.createClient(ctx, event.InstallationID)
 	if err != nil {
-		return fmt.Errorf("refresh client: %w", err)
+		return commentOutcome{aiAttempted: true, aiSucceeded: true}, fmt.Errorf("refresh client: %w", err)
 	}
 	if err := commentClient.AddIssueComment(ctx, event.Owner, event.Repo, event.Number, formattedResponse); err != nil {
-		return fmt.Errorf("post comment: %w", err)
+		return commentOutcome{aiAttempted: true, aiSucceeded: true}, fmt.Errorf("post comment: %w", err)
 	}
 
 	s.logger.Printf("pr-comment: posted AI response to %s/%s#%d", event.Owner, event.Repo, event.Number)
-	return nil
+	return commentOutcome{aiAttempted: true, aiSucceeded: true}, nil
 }
 
 func (s *PRCommentService) requestAIResponse(ctx context.Context, promptText string, event PRCommentEvent) (string, error) {

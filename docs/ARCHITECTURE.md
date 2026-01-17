@@ -35,6 +35,7 @@ It is intentionally lightweight and avoids framework lock-in.
    - Fetch PR diff from GitHub
    - Send diff to OpenCode for AI analysis (if available)
    - Post AI review as PR comment
+    - Add reaction (👍/😕) on completion
 
 ## Package Structure
 
@@ -61,7 +62,7 @@ internal/
 │   └── builder.go      # Prompt construction with options
 ├── queue/              # In-memory job queue with worker pool
 ├── review/             # PR review service
-│   └── review.go       # Acknowledge → AI Review → Comment flow
+│   └── review.go       # Acknowledge → AI Review → Comment → Complete flow
 ├── server/             # HTTP server and middleware
 └── webhook/            # Event router and handlers
     ├── router.go       # Event type dispatch
@@ -103,11 +104,13 @@ Handles PR events with a three-phase approach:
 1. **Acknowledge**: Add 👀 reaction immediately
 2. **AI Review**: Send diff to OpenCode for analysis (gracefully degrades if unavailable)
 3. **Comment**: Post review as PR comment
+4. **Complete**: Add 👍 on success or 😕 if AI failed
 
 ```go
 func (s *Service) OnPullRequestOpened(ctx, pr) error {
     s.acknowledge(ctx, client, owner, repo, pr.Number)  // 👀
-    s.process(ctx, client, owner, repo, pr.Number)      // AI Review → Comment
+    outcome := s.process(ctx, client, owner, repo, pr.Number)  // AI Review → Comment
+    s.complete(ctx, client, owner, repo, pr.Number, outcome)   // 👍/😕
 }
 ```
 
@@ -119,12 +122,14 @@ Handles issue comment events triggered by `@moribito` prefix:
 2. **Acknowledge**: Add 👀 reaction to the comment
 3. **AI Response**: Send issue context to OpenCode for analysis
 4. **Reply**: Post AI response as a new comment
+5. **Complete**: Add 👍 on success or 😕 if AI failed
 
 ```go
 func (s *Service) OnIssueComment(ctx, event) error {
     if !s.ShouldRespond(event.CommentBody) { return nil }
     s.acknowledge(ctx, client, event)     // 👀
-    s.process(ctx, client, event)         // AI Response → Comment
+    outcome := s.process(ctx, client, event) // AI Response → Comment
+    s.complete(ctx, client, event, outcome)  // 👍/😕
 }
 ```
 

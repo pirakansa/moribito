@@ -9,7 +9,7 @@ import (
 
 func TestRouterHandleKnownEvent(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	router := NewRouter(logger, nil, nil, nil)
+	router := NewRouter(logger, nil, nil, nil, nil)
 	called := false
 	router.Register("ping", func(_ context.Context, _, _ string, _ []byte) error {
 		called = true
@@ -26,7 +26,7 @@ func TestRouterHandleKnownEvent(t *testing.T) {
 
 func TestRouterHandleUnknownEvent(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	router := NewRouter(logger, nil, nil, nil)
+	router := NewRouter(logger, nil, nil, nil, nil)
 	if err := router.Handle(context.Background(), "unknown", "d1", []byte(`{}`)); err != nil {
 		t.Fatalf("handle unknown: %v", err)
 	}

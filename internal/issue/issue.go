@@ -12,6 +12,12 @@ import (
 	"github.com/pirakansa/moribito/internal/prompt"
 )
 
+const (
+	issueReactionEyes     = "eyes"
+	issueReactionThumbsUp = "+1"
+	issueReactionConfused = "confused"
+)
+
 // IssueClient defines the GitHub API operations needed for issue handling.
 type IssueClient interface {
 	AddIssueReaction(ctx context.Context, owner, repo string, number int, reaction string) error
@@ -142,7 +148,13 @@ func (s *Service) OnIssueComment(ctx context.Context, event CommentEvent) error 
 	}
 
 	// Process AI response
-	return s.process(ctx, client, event)
+	outcome, err := s.process(ctx, client, event)
+	if err != nil {
+		return err
+	}
+
+	s.complete(ctx, client, event, outcome)
+	return nil
 }
 
 func (s *Service) createClient(ctx context.Context, installationID int64) (githubapp.GitHubClient, error) {
@@ -153,14 +165,33 @@ func (s *Service) createClient(ctx context.Context, installationID int64) (githu
 }
 
 func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) error {
-	return client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, "+1")
+	return client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, issueReactionEyes)
 }
 
-func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) error {
+type issueOutcome struct {
+	aiAttempted bool
+	aiSucceeded bool
+}
+
+func (s *Service) complete(ctx context.Context, client githubapp.GitHubClient, event CommentEvent, outcome issueOutcome) {
+	reaction := issueReactionThumbsUp
+	if outcome.aiAttempted && !outcome.aiSucceeded {
+		reaction = issueReactionConfused
+	}
+
+	if err := client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, reaction); err != nil {
+		s.logger.Printf("issue: failed to add completion reaction %q: %v", reaction, err)
+		return
+	}
+
+	s.logger.Printf("issue: added completion reaction %q", reaction)
+}
+
+func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) (issueOutcome, error) {
 	// Check if OpenCode is available
 	if s.opencodeClient == nil || !s.opencodeClient.IsHealthy(ctx) {
 		s.logger.Printf("issue: opencode not available, skipping AI response")
-		return nil
+		return issueOutcome{aiAttempted: false, aiSucceeded: true}, nil
 	}
 
 	// Build issue context
@@ -181,28 +212,28 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ev
 	// Build prompt
 	promptText, err := s.promptBuilder.BuildIssueResponsePrompt(issueCtx)
 	if err != nil {
-		return fmt.Errorf("build prompt: %w", err)
+		return issueOutcome{aiAttempted: false, aiSucceeded: false}, fmt.Errorf("build prompt: %w", err)
 	}
 
 	// Request AI response
 	response, err := s.requestAIResponse(ctx, promptText)
 	if err != nil {
 		s.logger.Printf("issue: AI response failed: %v", err)
-		return fmt.Errorf("AI response: %w", err)
+		return issueOutcome{aiAttempted: true, aiSucceeded: false}, nil
 	}
 
 	// Post response as comment
 	formattedResponse := s.promptBuilder.FormatIssueResponse(response)
 	commentClient, err := s.createClient(ctx, event.InstallationID)
 	if err != nil {
-		return fmt.Errorf("refresh client: %w", err)
+		return issueOutcome{aiAttempted: true, aiSucceeded: true}, fmt.Errorf("refresh client: %w", err)
 	}
 	if err := commentClient.AddIssueComment(ctx, event.Owner, event.Repo, event.IssueNumber, formattedResponse); err != nil {
-		return fmt.Errorf("post comment: %w", err)
+		return issueOutcome{aiAttempted: true, aiSucceeded: true}, fmt.Errorf("post comment: %w", err)
 	}
 
 	s.logger.Printf("issue: posted AI response to %s/%s#%d", event.Owner, event.Repo, event.IssueNumber)
-	return nil
+	return issueOutcome{aiAttempted: true, aiSucceeded: true}, nil
 }
 
 func (s *Service) requestAIResponse(ctx context.Context, promptText string) (string, error) {
