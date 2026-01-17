@@ -139,8 +139,12 @@ func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.Serv
 	if err != nil {
 		return nil, nil, err
 	}
-	opts = append(opts, review.WithPromptBuilder(prompt.NewBuilder(prompt.WithTemplate(prTemplate))))
+	opts = append(opts, review.WithPromptBuilder(prompt.NewBuilder(
+		prompt.WithTemplate(prTemplate),
+		prompt.WithMaxDiffLength(cfg.PRReviewMaxDiffLength),
+	)))
 	logger.Printf("prompt: using PR review template %q", cfg.PRReviewTemplatePath)
+	logger.Printf("prompt: using max diff length %d", cfg.PRReviewMaxDiffLength)
 	if cfg.PRReviewModel != "" {
 		opts = append(opts, review.WithReviewModel(cfg.PRReviewModel))
 		logger.Printf("review: using model %q", cfg.PRReviewModel)

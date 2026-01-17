@@ -28,8 +28,9 @@ type Config struct {
 	QueueBuffer  int // Queue buffer size
 
 	// AI review configuration
-	PRReviewTemplatePath string // PR review prompt template file path
-	PRReviewModel        string // OpenCode model for PR review (optional)
+	PRReviewTemplatePath  string // PR review prompt template file path
+	PRReviewModel         string // OpenCode model for PR review (optional)
+	PRReviewMaxDiffLength int    // Max diff length for PR review prompt (0 disables diff)
 
 	// Issue response configuration
 	IssueResponseTemplatePath string // Issue response prompt template file path
@@ -44,6 +45,7 @@ const (
 	defaultOpenCodeHost       = "127.0.0.1"
 	defaultOpenCodePort       = 4096
 	defaultOpenCodeModel      = "opencode/big-pickle"
+	defaultPRReviewMaxDiffLen = 50000
 	defaultIssueTriggerPrefix = "@moribito"
 	defaultQueueWorkers       = 2
 	defaultQueueBuffer        = 100
@@ -67,6 +69,7 @@ const (
 //   - QUEUE_BUFFER: queue buffer size (default: 100)
 //   - PR_REVIEW_TEMPLATE_PATH: PR review prompt template file path
 //   - PR_REVIEW_MODEL: OpenCode model name for PR review (optional)
+//   - PR_REVIEW_MAX_DIFF_LENGTH: max diff length for PR review prompt (default: 50000, 0 disables diff)
 //   - ISSUE_RESPONSE_TEMPLATE_PATH: issue response prompt template file path
 //   - ISSUE_RESPONSE_MODEL: OpenCode model name for issue response (optional)
 //   - ISSUE_TRIGGER_PREFIX: comment prefix to trigger AI response (default: "@moribito")
@@ -95,6 +98,10 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.OpenCodePort, err = parseIntEnvDefault("OPENCODE_PORT", defaultOpenCodePort)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.PRReviewMaxDiffLength, err = parseIntEnvDefault("PR_REVIEW_MAX_DIFF_LENGTH", defaultPRReviewMaxDiffLen)
 	if err != nil {
 		return Config{}, err
 	}

@@ -193,7 +193,7 @@ func TestTruncateText(t *testing.T) {
 			name:   "zero maxLen",
 			text:   "any text",
 			maxLen: 0,
-			want:   "any text",
+			want:   "",
 		},
 		{
 			name:   "negative maxLen",

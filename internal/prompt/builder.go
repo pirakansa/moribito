@@ -134,7 +134,10 @@ func (b *Builder) FormatIssueResponse(response string) string {
 
 // truncateText limits text length with a truncation marker.
 func truncateText(text string, maxLen int) string {
-	if maxLen <= 0 || len(text) <= maxLen {
+	if maxLen == 0 {
+		return ""
+	}
+	if maxLen < 0 || len(text) <= maxLen {
 		return text
 	}
 	return text[:maxLen] + "\n... (truncated)"

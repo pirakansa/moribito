@@ -36,6 +36,7 @@ The app automatically detects OpenCode availability at startup. If unavailable, 
 |----------|---------|-------------|
 | `PR_REVIEW_TEMPLATE_PATH` | (required) | PR review prompt template file path |
 | `PR_REVIEW_MODEL` | `opencode/big-pickle` | OpenCode model name for PR reviews |
+| `PR_REVIEW_MAX_DIFF_LENGTH` | `50000` | PR review diff max length (`0` disables diff) |
 | `ISSUE_RESPONSE_TEMPLATE_PATH` | (required) | Issue response prompt template file path |
 | `ISSUE_RESPONSE_MODEL` | `opencode/big-pickle` | OpenCode model name for issue responses |
 

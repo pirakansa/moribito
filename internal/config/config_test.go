@@ -12,6 +12,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("QUEUE_BUFFER", "")
 	t.Setenv("PR_REVIEW_TEMPLATE_PATH", "/tmp/pr.tmpl")
 	t.Setenv("PR_REVIEW_MODEL", "")
+	t.Setenv("PR_REVIEW_MAX_DIFF_LENGTH", "")
 	t.Setenv("ISSUE_RESPONSE_TEMPLATE_PATH", "/tmp/issue.tmpl")
 	t.Setenv("ISSUE_RESPONSE_MODEL", "")
 	t.Setenv("ISSUE_TRIGGER_PREFIX", "")
@@ -46,6 +47,9 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.PRReviewModel != defaultOpenCodeModel {
 		t.Fatalf("expected pr review model %s, got %s", defaultOpenCodeModel, cfg.PRReviewModel)
+	}
+	if cfg.PRReviewMaxDiffLength != defaultPRReviewMaxDiffLen {
+		t.Fatalf("expected pr review max diff length %d, got %d", defaultPRReviewMaxDiffLen, cfg.PRReviewMaxDiffLength)
 	}
 	if cfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
 		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", cfg.IssueResponseTemplatePath)
