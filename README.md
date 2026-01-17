@@ -79,7 +79,9 @@ The server starts on `:8080` with endpoints:
 | `QUEUE_WORKERS` | No | Queue worker count (default: `2`) |
 | `QUEUE_BUFFER` | No | Queue buffer size (default: `100`) |
 | `PR_REVIEW_TEMPLATE_PATH` | **Yes** | PR review prompt template file path |
+| `PR_REVIEW_MODEL` | No | OpenCode model name for PR reviews (default: `opencode/big-pickle`) |
 | `ISSUE_RESPONSE_TEMPLATE_PATH` | **Yes** | Issue response prompt template file path |
+| `ISSUE_RESPONSE_MODEL` | No | OpenCode model name for issue responses (default: `opencode/big-pickle`) |
 | `ISSUE_TRIGGER_PREFIX` | No | Issue comment trigger prefix (default: `@moribito`) |
 
 ## PR Review Flow

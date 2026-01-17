@@ -141,6 +141,10 @@ func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.Serv
 	}
 	opts = append(opts, review.WithPromptBuilder(prompt.NewBuilder(prompt.WithTemplate(prTemplate))))
 	logger.Printf("prompt: using PR review template %q", cfg.PRReviewTemplatePath)
+	if cfg.PRReviewModel != "" {
+		opts = append(opts, review.WithReviewModel(cfg.PRReviewModel))
+		logger.Printf("review: using model %q", cfg.PRReviewModel)
+	}
 
 	// Create OpenCode client
 	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
@@ -174,6 +178,10 @@ func createIssueService(cfg config.Config, logger *log.Logger, factory *githubap
 	}
 	opts = append(opts, issue.WithPromptBuilder(prompt.NewBuilder(prompt.WithTemplate(issueTemplate))))
 	logger.Printf("prompt: using issue response template %q", cfg.IssueResponseTemplatePath)
+	if cfg.IssueResponseModel != "" {
+		opts = append(opts, issue.WithResponseModel(cfg.IssueResponseModel))
+		logger.Printf("issue: using model %q", cfg.IssueResponseModel)
+	}
 
 	// Set custom trigger prefix if configured
 	if cfg.IssueTriggerPrefix != "" {

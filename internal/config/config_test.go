@@ -11,7 +11,9 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("QUEUE_WORKERS", "")
 	t.Setenv("QUEUE_BUFFER", "")
 	t.Setenv("PR_REVIEW_TEMPLATE_PATH", "/tmp/pr.tmpl")
+	t.Setenv("PR_REVIEW_MODEL", "")
 	t.Setenv("ISSUE_RESPONSE_TEMPLATE_PATH", "/tmp/issue.tmpl")
+	t.Setenv("ISSUE_RESPONSE_MODEL", "")
 	t.Setenv("ISSUE_TRIGGER_PREFIX", "")
 
 	cfg, err := Load()
@@ -42,8 +44,14 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.PRReviewTemplatePath != "/tmp/pr.tmpl" {
 		t.Fatalf("expected pr review template path %s, got %s", "/tmp/pr.tmpl", cfg.PRReviewTemplatePath)
 	}
+	if cfg.PRReviewModel != defaultOpenCodeModel {
+		t.Fatalf("expected pr review model %s, got %s", defaultOpenCodeModel, cfg.PRReviewModel)
+	}
 	if cfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
 		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", cfg.IssueResponseTemplatePath)
+	}
+	if cfg.IssueResponseModel != defaultOpenCodeModel {
+		t.Fatalf("expected issue response model %s, got %s", defaultOpenCodeModel, cfg.IssueResponseModel)
 	}
 	if cfg.IssueTriggerPrefix != defaultIssueTriggerPrefix {
 		t.Fatalf("expected default issue trigger prefix %s, got %s", defaultIssueTriggerPrefix, cfg.IssueTriggerPrefix)

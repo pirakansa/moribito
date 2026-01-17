@@ -29,9 +29,11 @@ type Config struct {
 
 	// AI review configuration
 	PRReviewTemplatePath string // PR review prompt template file path
+	PRReviewModel        string // OpenCode model for PR review (optional)
 
 	// Issue response configuration
 	IssueResponseTemplatePath string // Issue response prompt template file path
+	IssueResponseModel        string // OpenCode model for issue response (optional)
 	IssueTriggerPrefix        string // Comment prefix to trigger AI response (default: @moribito)
 }
 
@@ -41,6 +43,7 @@ const (
 	defaultWebhookPath        = "/webhook"
 	defaultOpenCodeHost       = "127.0.0.1"
 	defaultOpenCodePort       = 4096
+	defaultOpenCodeModel      = "opencode/big-pickle"
 	defaultIssueTriggerPrefix = "@moribito"
 	defaultQueueWorkers       = 2
 	defaultQueueBuffer        = 100
@@ -63,7 +66,9 @@ const (
 //   - QUEUE_WORKERS: number of queue workers (default: 2)
 //   - QUEUE_BUFFER: queue buffer size (default: 100)
 //   - PR_REVIEW_TEMPLATE_PATH: PR review prompt template file path
+//   - PR_REVIEW_MODEL: OpenCode model name for PR review (optional)
 //   - ISSUE_RESPONSE_TEMPLATE_PATH: issue response prompt template file path
+//   - ISSUE_RESPONSE_MODEL: OpenCode model name for issue response (optional)
 //   - ISSUE_TRIGGER_PREFIX: comment prefix to trigger AI response (default: "@moribito")
 func Load() (Config, error) {
 	cfg := Config{
@@ -74,7 +79,9 @@ func Load() (Config, error) {
 		GitHubWebhookPath:         envOrDefault("GITHUB_WEBHOOK_PATH", defaultWebhookPath),
 		OpenCodeHost:              envOrDefault("OPENCODE_HOST", defaultOpenCodeHost),
 		PRReviewTemplatePath:      strings.TrimSpace(os.Getenv("PR_REVIEW_TEMPLATE_PATH")),
+		PRReviewModel:             envOrDefault("PR_REVIEW_MODEL", defaultOpenCodeModel),
 		IssueResponseTemplatePath: strings.TrimSpace(os.Getenv("ISSUE_RESPONSE_TEMPLATE_PATH")),
+		IssueResponseModel:        envOrDefault("ISSUE_RESPONSE_MODEL", defaultOpenCodeModel),
 		IssueTriggerPrefix:        envOrDefault("ISSUE_TRIGGER_PREFIX", defaultIssueTriggerPrefix),
 	}
 

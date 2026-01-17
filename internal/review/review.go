@@ -47,6 +47,7 @@ type Service struct {
 	clientFactory  ClientFactory
 	opencodeClient OpenCodeClient
 	promptBuilder  *prompt.Builder
+	model          string
 }
 
 // ServiceOption configures the Service.
@@ -63,6 +64,13 @@ func WithOpenCodeClient(client OpenCodeClient) ServiceOption {
 func WithPromptBuilder(builder *prompt.Builder) ServiceOption {
 	return func(s *Service) {
 		s.promptBuilder = builder
+	}
+}
+
+// WithReviewModel sets a specific OpenCode model for PR reviews.
+func WithReviewModel(model string) ServiceOption {
+	return func(s *Service) {
+		s.model = model
 	}
 }
 
@@ -217,7 +225,11 @@ func (s *Service) requestAIReview(ctx context.Context, prInfo *githubapp.PullReq
 	}
 
 	// Send message and wait for response
-	resp, err := s.opencodeClient.SendMessage(ctx, session.ID, opencode.NewTextMessageRequest(reviewPrompt))
+	req := opencode.NewTextMessageRequest(reviewPrompt)
+	if s.model != "" {
+		req = opencode.NewTextMessageRequestWithModel(reviewPrompt, s.model)
+	}
+	resp, err := s.opencodeClient.SendMessage(ctx, session.ID, req)
 	if err != nil {
 		return "", fmt.Errorf("send message: %w", err)
 	}

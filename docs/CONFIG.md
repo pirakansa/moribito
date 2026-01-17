@@ -35,7 +35,9 @@ The app automatically detects OpenCode availability at startup. If unavailable, 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `PR_REVIEW_TEMPLATE_PATH` | (required) | PR review prompt template file path |
+| `PR_REVIEW_MODEL` | `opencode/big-pickle` | OpenCode model name for PR reviews |
 | `ISSUE_RESPONSE_TEMPLATE_PATH` | (required) | Issue response prompt template file path |
+| `ISSUE_RESPONSE_MODEL` | `opencode/big-pickle` | OpenCode model name for issue responses |
 
 #### Sample Templates
 
@@ -90,7 +92,9 @@ export OPENCODE_PORT=4096
 export QUEUE_WORKERS=2
 export QUEUE_BUFFER=100
 export PR_REVIEW_TEMPLATE_PATH=docs/templates/pr-review-ja.md.tmpl
+export PR_REVIEW_MODEL=your-pr-review-model
 export ISSUE_RESPONSE_TEMPLATE_PATH=docs/templates/issue-response-ja.md.tmpl
+export ISSUE_RESPONSE_MODEL=your-issue-response-model
 ./bin/host/moribito
 ```
 
@@ -109,7 +113,9 @@ export OPENCODE_PORT=4096
 export QUEUE_WORKERS=2
 export QUEUE_BUFFER=100
 export PR_REVIEW_TEMPLATE_PATH=docs/templates/pr-review.md.tmpl
+export PR_REVIEW_MODEL=your-pr-review-model
 export ISSUE_RESPONSE_TEMPLATE_PATH=docs/templates/issue-response.md.tmpl
+export ISSUE_RESPONSE_MODEL=your-issue-response-model
 ./bin/host/moribito
 ```
 
