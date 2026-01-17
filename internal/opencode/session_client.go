@@ -3,54 +3,7 @@ package opencode
 import (
 	"context"
 	"fmt"
-	"time"
 )
-
-// Session represents an OpenCode session.
-type Session struct {
-	ID        string     `json:"id"`
-	ParentID  string     `json:"parentID,omitempty"`
-	Title     string     `json:"title,omitempty"`
-	CreatedAt time.Time  `json:"createdAt,omitempty"`
-	UpdatedAt time.Time  `json:"updatedAt,omitempty"`
-	Share     *ShareInfo `json:"share,omitempty"`
-}
-
-// ShareInfo contains session sharing information.
-type ShareInfo struct {
-	URL string `json:"url,omitempty"`
-}
-
-// SessionStatus represents the current status of a session.
-type SessionStatus struct {
-	Running bool   `json:"running"`
-	Error   string `json:"error,omitempty"`
-}
-
-// Todo represents a task item in a session.
-type Todo struct {
-	ID     string `json:"id"`
-	Title  string `json:"title"`
-	Status string `json:"status"` // "not-started", "in-progress", "completed"
-}
-
-// FileDiff represents a file difference in a session.
-type FileDiff struct {
-	Path    string `json:"path"`
-	Content string `json:"content,omitempty"`
-	Diff    string `json:"diff,omitempty"`
-}
-
-// CreateSessionRequest represents the request to create a new session.
-type CreateSessionRequest struct {
-	ParentID string `json:"parentID,omitempty"`
-	Title    string `json:"title,omitempty"`
-}
-
-// UpdateSessionRequest represents the request to update a session.
-type UpdateSessionRequest struct {
-	Title string `json:"title,omitempty"`
-}
 
 // ListSessions returns all sessions.
 // Endpoint: GET /session
@@ -159,11 +112,6 @@ func (c *Client) AbortSession(ctx context.Context, sessionID string) error {
 	return nil
 }
 
-// ForkSessionRequest represents the request to fork a session.
-type ForkSessionRequest struct {
-	MessageID string `json:"messageID,omitempty"`
-}
-
 // ForkSession forks an existing session at a message.
 // Endpoint: POST /session/:id/fork
 func (c *Client) ForkSession(ctx context.Context, sessionID string, req *ForkSessionRequest) (*Session, error) {
@@ -197,12 +145,6 @@ func (c *Client) UnshareSession(ctx context.Context, sessionID string) (*Session
 	return &session, nil
 }
 
-// SummarizeSessionRequest represents the request to summarize a session.
-type SummarizeSessionRequest struct {
-	ProviderID string `json:"providerID"`
-	ModelID    string `json:"modelID"`
-}
-
 // SummarizeSession summarizes the session.
 // Endpoint: POST /session/:id/summarize
 func (c *Client) SummarizeSession(ctx context.Context, sessionID string, req *SummarizeSessionRequest) error {
@@ -213,12 +155,6 @@ func (c *Client) SummarizeSession(ctx context.Context, sessionID string, req *Su
 	return nil
 }
 
-// PermissionResponse represents a response to a permission request.
-type PermissionResponse struct {
-	Response string `json:"response"` // "allow" or "deny"
-	Remember bool   `json:"remember,omitempty"`
-}
-
 // RespondToPermission responds to a permission request in a session.
 // Endpoint: POST /session/:id/permissions/:permissionID
 func (c *Client) RespondToPermission(ctx context.Context, sessionID, permissionID string, resp *PermissionResponse) error {
@@ -227,12 +163,6 @@ func (c *Client) RespondToPermission(ctx context.Context, sessionID, permissionI
 		return fmt.Errorf("respond to permission %s/%s: %w", sessionID, permissionID, err)
 	}
 	return nil
-}
-
-// RevertMessageRequest represents the request to revert a message.
-type RevertMessageRequest struct {
-	MessageID string `json:"messageID"`
-	PartID    string `json:"partID,omitempty"`
 }
 
 // RevertMessage reverts a message in a session.
