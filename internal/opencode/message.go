@@ -139,7 +139,7 @@ func (c *Client) GetMessage(ctx context.Context, sessionID, messageID string) (*
 func (c *Client) SendMessage(ctx context.Context, sessionID string, req *SendMessageRequest) (*MessageWithParts, error) {
 	var msg MessageWithParts
 	// Use longer timeout for message requests as AI processing can take time
-	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/message", req, &msg, LongTimeout); err != nil {
+	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/message", req, &msg, c.longTimeout); err != nil {
 		return nil, fmt.Errorf("send message to session %s: %w", sessionID, err)
 	}
 	return &msg, nil
@@ -168,7 +168,7 @@ type CommandRequest struct {
 // Endpoint: POST /session/:id/command
 func (c *Client) ExecuteCommand(ctx context.Context, sessionID string, req *CommandRequest) (*MessageWithParts, error) {
 	var msg MessageWithParts
-	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/command", req, &msg, LongTimeout); err != nil {
+	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/command", req, &msg, c.longTimeout); err != nil {
 		return nil, fmt.Errorf("execute command in session %s: %w", sessionID, err)
 	}
 	return &msg, nil
@@ -185,7 +185,7 @@ type ShellRequest struct {
 // Endpoint: POST /session/:id/shell
 func (c *Client) RunShell(ctx context.Context, sessionID string, req *ShellRequest) (*MessageWithParts, error) {
 	var msg MessageWithParts
-	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/shell", req, &msg, LongTimeout); err != nil {
+	if err := c.doJSONWithTimeout(ctx, http.MethodPost, "/session/"+sessionID+"/shell", req, &msg, c.longTimeout); err != nil {
 		return nil, fmt.Errorf("run shell in session %s: %w", sessionID, err)
 	}
 	return &msg, nil

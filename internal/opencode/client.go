@@ -25,8 +25,9 @@ const (
 
 // Client provides methods to interact with the OpenCode server API.
 type Client struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL     string
+	httpClient  *http.Client
+	longTimeout time.Duration
 }
 
 // ClientOption configures the Client.
@@ -43,6 +44,13 @@ func WithHTTPClient(httpClient *http.Client) ClientOption {
 func WithTimeout(timeout time.Duration) ClientOption {
 	return func(c *Client) {
 		c.httpClient.Timeout = timeout
+	}
+}
+
+// WithLongTimeout sets the timeout for long-running OpenCode requests.
+func WithLongTimeout(timeout time.Duration) ClientOption {
+	return func(c *Client) {
+		c.longTimeout = timeout
 	}
 }
 
@@ -64,6 +72,7 @@ func NewClient(host string, port int, opts ...ClientOption) *Client {
 		httpClient: &http.Client{
 			Timeout: DefaultTimeout,
 		},
+		longTimeout: LongTimeout,
 	}
 
 	for _, opt := range opts {

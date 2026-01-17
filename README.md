@@ -76,6 +76,7 @@ The server starts on `:8080` with endpoints:
 | `GITHUB_API_BASE_URL` | No | API URL (default: `https://api.github.com`) |
 | `OPENCODE_HOST` | No | OpenCode server hostname (default: `127.0.0.1`) |
 | `OPENCODE_PORT` | No | OpenCode server port (default: `4096`) |
+| `OPENCODE_LONG_TIMEOUT_SECONDS` | No | OpenCode long request timeout in seconds (default: `600`) |
 | `QUEUE_WORKERS` | No | Queue worker count (default: `2`) |
 | `QUEUE_BUFFER` | No | Queue buffer size (default: `100`) |
 | `PR_REVIEW_TEMPLATE_PATH` | **Yes** | PR review prompt template file path |

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // Config holds all configuration values for the GitHub App server.
@@ -20,8 +21,9 @@ type Config struct {
 	GitHubWebhookPath string // Webhook endpoint path
 
 	// OpenCode server configuration
-	OpenCodeHost string // OpenCode server hostname (default: 127.0.0.1)
-	OpenCodePort int    // OpenCode server port (default: 4096)
+	OpenCodeHost        string        // OpenCode server hostname (default: 127.0.0.1)
+	OpenCodePort        int           // OpenCode server port (default: 4096)
+	OpenCodeLongTimeout time.Duration // Timeout for long-running OpenCode requests
 
 	// Queue configuration
 	QueueWorkers int // Number of worker goroutines for background jobs
@@ -39,16 +41,17 @@ type Config struct {
 }
 
 const (
-	defaultAddr               = ":8080"
-	defaultGitHubAPIBaseURL   = "https://api.github.com"
-	defaultWebhookPath        = "/webhook"
-	defaultOpenCodeHost       = "127.0.0.1"
-	defaultOpenCodePort       = 4096
-	defaultOpenCodeModel      = "opencode/big-pickle"
-	defaultPRReviewMaxDiffLen = 50000
-	defaultIssueTriggerPrefix = "@moribito"
-	defaultQueueWorkers       = 2
-	defaultQueueBuffer        = 100
+	defaultAddr                = ":8080"
+	defaultGitHubAPIBaseURL    = "https://api.github.com"
+	defaultWebhookPath         = "/webhook"
+	defaultOpenCodeHost        = "127.0.0.1"
+	defaultOpenCodePort        = 4096
+	defaultOpenCodeModel       = "opencode/big-pickle"
+	defaultOpenCodeLongTimeout = 10 * time.Minute
+	defaultPRReviewMaxDiffLen  = 50000
+	defaultIssueTriggerPrefix  = "@moribito"
+	defaultQueueWorkers        = 2
+	defaultQueueBuffer         = 100
 )
 
 // Load reads configuration from environment variables.
@@ -65,6 +68,7 @@ const (
 //   - GITHUB_WEBHOOK_PATH: webhook endpoint (default: "/webhook")
 //   - OPENCODE_HOST: OpenCode server hostname (default: "127.0.0.1")
 //   - OPENCODE_PORT: OpenCode server port (default: 4096)
+//   - OPENCODE_LONG_TIMEOUT_SECONDS: timeout in seconds for long OpenCode requests (default: 600)
 //   - QUEUE_WORKERS: number of queue workers (default: 2)
 //   - QUEUE_BUFFER: queue buffer size (default: 100)
 //   - PR_REVIEW_TEMPLATE_PATH: PR review prompt template file path
@@ -98,6 +102,10 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	cfg.OpenCodePort, err = parseIntEnvDefault("OPENCODE_PORT", defaultOpenCodePort)
+	if err != nil {
+		return Config{}, err
+	}
+	cfg.OpenCodeLongTimeout, err = parseDurationSecondsEnvDefault("OPENCODE_LONG_TIMEOUT_SECONDS", defaultOpenCodeLongTimeout)
 	if err != nil {
 		return Config{}, err
 	}
@@ -178,4 +186,16 @@ func parseIntEnvDefault(key string, def int) (int, error) {
 		return 0, fmt.Errorf("%s must be an integer: %w", key, err)
 	}
 	return val, nil
+}
+
+func parseDurationSecondsEnvDefault(key string, def time.Duration) (time.Duration, error) {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return def, nil
+	}
+	val, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("%s must be an integer: %w", key, err)
+	}
+	return time.Duration(val) * time.Second, nil
 }

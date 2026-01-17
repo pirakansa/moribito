@@ -74,7 +74,7 @@ func run() error {
 		return err
 	}
 
-	healthClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
+	healthClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort, opencode.WithLongTimeout(cfg.OpenCodeLongTimeout))
 	srv := server.New(cfg, logger, jobQueue, reviewer, issueService, healthClient, cfg.QueueWorkers, cfg.QueueBuffer)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
@@ -151,7 +151,7 @@ func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.Serv
 	}
 
 	// Create OpenCode client
-	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort)
+	ocClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort, opencode.WithLongTimeout(cfg.OpenCodeLongTimeout))
 
 	// Check if OpenCode server is available
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

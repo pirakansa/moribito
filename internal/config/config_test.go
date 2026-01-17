@@ -8,6 +8,7 @@ func TestLoadDefaults(t *testing.T) {
 	t.Setenv("GITHUB_WEBHOOK_PATH", "")
 	t.Setenv("OPENCODE_HOST", "")
 	t.Setenv("OPENCODE_PORT", "")
+	t.Setenv("OPENCODE_LONG_TIMEOUT_SECONDS", "")
 	t.Setenv("QUEUE_WORKERS", "")
 	t.Setenv("QUEUE_BUFFER", "")
 	t.Setenv("PR_REVIEW_TEMPLATE_PATH", "/tmp/pr.tmpl")
@@ -35,6 +36,9 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.OpenCodePort != defaultOpenCodePort {
 		t.Fatalf("expected default opencode port %d, got %d", defaultOpenCodePort, cfg.OpenCodePort)
+	}
+	if cfg.OpenCodeLongTimeout != defaultOpenCodeLongTimeout {
+		t.Fatalf("expected default opencode long timeout %s, got %s", defaultOpenCodeLongTimeout, cfg.OpenCodeLongTimeout)
 	}
 	if cfg.QueueWorkers != defaultQueueWorkers {
 		t.Fatalf("expected default queue workers %d, got %d", defaultQueueWorkers, cfg.QueueWorkers)

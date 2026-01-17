@@ -190,7 +190,11 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ev
 
 	// Post response as comment
 	formattedResponse := s.promptBuilder.FormatIssueResponse(response)
-	if err := client.AddIssueComment(ctx, event.Owner, event.Repo, event.IssueNumber, formattedResponse); err != nil {
+	commentClient, err := s.createClient(ctx, event.InstallationID)
+	if err != nil {
+		return fmt.Errorf("refresh client: %w", err)
+	}
+	if err := commentClient.AddIssueComment(ctx, event.Owner, event.Repo, event.IssueNumber, formattedResponse); err != nil {
 		return fmt.Errorf("post comment: %w", err)
 	}
 

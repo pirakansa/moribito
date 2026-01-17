@@ -118,7 +118,7 @@ func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error
 	}
 
 	// Step 2: Process - Execute the actual review logic
-	if err := s.process(ctx, client, owner, repo, pr.Number); err != nil {
+	if err := s.process(ctx, client, owner, repo, pr.Number, pr.InstallationID); err != nil {
 		return err
 	}
 
@@ -140,7 +140,7 @@ func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient
 
 // process executes the main review logic for the pull request.
 // This is where the actual analysis, review, or automation happens.
-func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int) error {
+func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int, installationID int64) error {
 	s.logger.Printf("review: processing PR repo=%s/%s number=%d", owner, repo, number)
 
 	// Step 1: Fetch PR details and diff
@@ -182,7 +182,12 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ow
 
 	// Step 4: Post review comment
 	if reviewComment != "" {
-		if err := client.AddIssueComment(ctx, owner, repo, number, reviewComment); err != nil {
+		commentClient, err := s.clientFactory.NewClient(ctx, installationID)
+		if err != nil {
+			s.logger.Printf("review: failed to refresh client: %v", err)
+			return err
+		}
+		if err := commentClient.AddIssueComment(ctx, owner, repo, number, reviewComment); err != nil {
 			s.logger.Printf("review: failed to post review comment: %v", err)
 			return err
 		}

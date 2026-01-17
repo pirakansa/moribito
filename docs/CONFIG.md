@@ -27,6 +27,7 @@
 |----------|---------|-------------|
 | `OPENCODE_HOST` | `127.0.0.1` | OpenCode server hostname |
 | `OPENCODE_PORT` | `4096` | OpenCode server port |
+| `OPENCODE_LONG_TIMEOUT_SECONDS` | `600` | OpenCode long request timeout in seconds |
 
 The app automatically detects OpenCode availability at startup. If unavailable, AI review is disabled but the app continues to function normally.
 
