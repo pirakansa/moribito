@@ -8,8 +8,9 @@ import (
 
 func TestLoadDefaults(t *testing.T) {
 	path := writeConfigFile(t, `{
-  "review": { "templatePath": "/tmp/pr.tmpl" },
-  "issue": { "responseTemplatePath": "/tmp/issue.tmpl" }
+	"prOpen": { "templatePath": "/tmp/pr-open.tmpl" },
+	"prComment": { "templatePath": "/tmp/pr-comment.tmpl" },
+	"issue": { "responseTemplatePath": "/tmp/issue.tmpl" }
 }`)
 	t.Setenv("MORIBITO_CONFIG_PATH", path)
 
@@ -41,14 +42,23 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.QueueBuffer != defaultQueueBuffer {
 		t.Fatalf("expected default queue buffer %d, got %d", defaultQueueBuffer, cfg.QueueBuffer)
 	}
-	if cfg.PRReviewTemplatePath != "/tmp/pr.tmpl" {
-		t.Fatalf("expected pr review template path %s, got %s", "/tmp/pr.tmpl", cfg.PRReviewTemplatePath)
+	if cfg.PROpenTemplatePath != "/tmp/pr-open.tmpl" {
+		t.Fatalf("expected pr open template path %s, got %s", "/tmp/pr-open.tmpl", cfg.PROpenTemplatePath)
 	}
-	if cfg.PRReviewModel != defaultOpenCodeModel {
-		t.Fatalf("expected pr review model %s, got %s", defaultOpenCodeModel, cfg.PRReviewModel)
+	if cfg.PROpenModel != defaultOpenCodeModel {
+		t.Fatalf("expected pr open model %s, got %s", defaultOpenCodeModel, cfg.PROpenModel)
 	}
-	if cfg.PRReviewMaxDiffLength != defaultPRReviewMaxDiffLen {
-		t.Fatalf("expected pr review max diff length %d, got %d", defaultPRReviewMaxDiffLen, cfg.PRReviewMaxDiffLength)
+	if cfg.PROpenMaxDiffLength != defaultPROpenMaxDiffLen {
+		t.Fatalf("expected pr open max diff length %d, got %d", defaultPROpenMaxDiffLen, cfg.PROpenMaxDiffLength)
+	}
+	if cfg.PRCommentTemplatePath != "/tmp/pr-comment.tmpl" {
+		t.Fatalf("expected pr comment template path %s, got %s", "/tmp/pr-comment.tmpl", cfg.PRCommentTemplatePath)
+	}
+	if cfg.PRCommentModel != defaultOpenCodeModel {
+		t.Fatalf("expected pr comment model %s, got %s", defaultOpenCodeModel, cfg.PRCommentModel)
+	}
+	if cfg.PRCommentMaxDiffLength != defaultPRCommentMaxDiffLen {
+		t.Fatalf("expected pr comment max diff length %d, got %d", defaultPRCommentMaxDiffLen, cfg.PRCommentMaxDiffLength)
 	}
 	if cfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
 		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", cfg.IssueResponseTemplatePath)
@@ -94,7 +104,7 @@ func TestValidateForWebhook(t *testing.T) {
 	cfg = Config{
 		Addr:                      ":8080",
 		GitHubWebhookPath:         "/webhook",
-		PRReviewTemplatePath:      "/tmp/pr.tmpl",
+		PROpenTemplatePath:        "/tmp/pr.tmpl",
 		IssueResponseTemplatePath: "/tmp/issue.tmpl",
 	}
 	if err := cfg.ValidateForWebhook(); err != nil {

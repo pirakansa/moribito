@@ -29,10 +29,15 @@ type Config struct {
 	QueueWorkers int // Number of worker goroutines for background jobs
 	QueueBuffer  int // Queue buffer size
 
-	// AI review configuration
-	PRReviewTemplatePath  string // PR review prompt template file path
-	PRReviewModel         string // OpenCode model for PR review (optional)
-	PRReviewMaxDiffLength int    // Max diff length for PR review prompt (0 disables diff)
+	// PR open response configuration
+	PROpenTemplatePath  string // PR open prompt template file path
+	PROpenModel         string // OpenCode model for PR open response (optional)
+	PROpenMaxDiffLength int    // Max diff length for PR open prompt (0 disables diff)
+
+	// PR comment response configuration
+	PRCommentTemplatePath  string // PR comment prompt template file path
+	PRCommentModel         string // OpenCode model for PR comment response (optional)
+	PRCommentMaxDiffLength int    // Max diff length for PR comment prompt (0 disables diff)
 
 	// Issue response configuration
 	IssueResponseTemplatePath string // Issue response prompt template file path
@@ -48,7 +53,8 @@ const (
 	defaultOpenCodePort        = 4096
 	defaultOpenCodeModel       = "opencode/big-pickle"
 	defaultOpenCodeLongTimeout = 10 * time.Minute
-	defaultPRReviewMaxDiffLen  = 50000
+	defaultPROpenMaxDiffLen    = 50000
+	defaultPRCommentMaxDiffLen = 50000
 	defaultIssueTriggerPrefix  = "@moribito"
 	defaultQueueWorkers        = 2
 	defaultQueueBuffer         = 100
@@ -72,18 +78,20 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		Addr:                  defaultAddr,
-		GitHubAPIBaseURL:      defaultGitHubAPIBaseURL,
-		GitHubWebhookPath:     defaultWebhookPath,
-		OpenCodeHost:          defaultOpenCodeHost,
-		OpenCodePort:          defaultOpenCodePort,
-		OpenCodeLongTimeout:   defaultOpenCodeLongTimeout,
-		QueueWorkers:          defaultQueueWorkers,
-		QueueBuffer:           defaultQueueBuffer,
-		PRReviewModel:         defaultOpenCodeModel,
-		PRReviewMaxDiffLength: defaultPRReviewMaxDiffLen,
-		IssueResponseModel:    defaultOpenCodeModel,
-		IssueTriggerPrefix:    defaultIssueTriggerPrefix,
+		Addr:                   defaultAddr,
+		GitHubAPIBaseURL:       defaultGitHubAPIBaseURL,
+		GitHubWebhookPath:      defaultWebhookPath,
+		OpenCodeHost:           defaultOpenCodeHost,
+		OpenCodePort:           defaultOpenCodePort,
+		OpenCodeLongTimeout:    defaultOpenCodeLongTimeout,
+		QueueWorkers:           defaultQueueWorkers,
+		QueueBuffer:            defaultQueueBuffer,
+		PROpenModel:            defaultOpenCodeModel,
+		PROpenMaxDiffLength:    defaultPROpenMaxDiffLen,
+		PRCommentModel:         defaultOpenCodeModel,
+		PRCommentMaxDiffLength: defaultPRCommentMaxDiffLen,
+		IssueResponseModel:     defaultOpenCodeModel,
+		IssueTriggerPrefix:     defaultIssueTriggerPrefix,
 	}
 
 	if fileCfg.Server.Addr != "" {
@@ -122,14 +130,23 @@ func Load() (Config, error) {
 	if fileCfg.Queue.Buffer != nil {
 		cfg.QueueBuffer = *fileCfg.Queue.Buffer
 	}
-	if fileCfg.Review.TemplatePath != "" {
-		cfg.PRReviewTemplatePath = fileCfg.Review.TemplatePath
+	if fileCfg.PROpen.TemplatePath != "" {
+		cfg.PROpenTemplatePath = fileCfg.PROpen.TemplatePath
 	}
-	if fileCfg.Review.Model != "" {
-		cfg.PRReviewModel = fileCfg.Review.Model
+	if fileCfg.PROpen.Model != "" {
+		cfg.PROpenModel = fileCfg.PROpen.Model
 	}
-	if fileCfg.Review.MaxDiffLength != nil {
-		cfg.PRReviewMaxDiffLength = *fileCfg.Review.MaxDiffLength
+	if fileCfg.PROpen.MaxDiffLength != nil {
+		cfg.PROpenMaxDiffLength = *fileCfg.PROpen.MaxDiffLength
+	}
+	if fileCfg.PRComment.TemplatePath != "" {
+		cfg.PRCommentTemplatePath = fileCfg.PRComment.TemplatePath
+	}
+	if fileCfg.PRComment.Model != "" {
+		cfg.PRCommentModel = fileCfg.PRComment.Model
+	}
+	if fileCfg.PRComment.MaxDiffLength != nil {
+		cfg.PRCommentMaxDiffLength = *fileCfg.PRComment.MaxDiffLength
 	}
 	if fileCfg.Issue.ResponseTemplatePath != "" {
 		cfg.IssueResponseTemplatePath = fileCfg.Issue.ResponseTemplatePath
@@ -166,8 +183,8 @@ func (c Config) ValidateForWebhook() error {
 	if strings.TrimSpace(c.GitHubWebhookPath) == "" {
 		return fmt.Errorf("server.webhookPath is required")
 	}
-	if strings.TrimSpace(c.PRReviewTemplatePath) == "" {
-		return fmt.Errorf("review.templatePath is required")
+	if strings.TrimSpace(c.PROpenTemplatePath) == "" {
+		return fmt.Errorf("prOpen.templatePath is required")
 	}
 	if strings.TrimSpace(c.IssueResponseTemplatePath) == "" {
 		return fmt.Errorf("issue.responseTemplatePath is required")
@@ -196,11 +213,16 @@ type fileConfig struct {
 		Workers *int `json:"workers"`
 		Buffer  *int `json:"buffer"`
 	} `json:"queue"`
-	Review struct {
+	PROpen struct {
 		TemplatePath  string `json:"templatePath"`
 		Model         string `json:"model"`
 		MaxDiffLength *int   `json:"maxDiffLength"`
-	} `json:"review"`
+	} `json:"prOpen"`
+	PRComment struct {
+		TemplatePath  string `json:"templatePath"`
+		Model         string `json:"model"`
+		MaxDiffLength *int   `json:"maxDiffLength"`
+	} `json:"prComment"`
 	Issue struct {
 		ResponseTemplatePath string `json:"responseTemplatePath"`
 		ResponseModel        string `json:"responseModel"`

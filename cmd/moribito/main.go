@@ -135,19 +135,19 @@ func printInstallationToken(cfg config.Config) error {
 func createOpenCodeOptions(cfg config.Config, logger *log.Logger) ([]review.ServiceOption, *opencode.Client, error) {
 	var opts []review.ServiceOption
 
-	prTemplate, err := prompt.LoadTemplateFromFile(cfg.PRReviewTemplatePath)
+	prTemplate, err := prompt.LoadTemplateFromFile(cfg.PROpenTemplatePath)
 	if err != nil {
 		return nil, nil, err
 	}
 	opts = append(opts, review.WithPromptBuilder(prompt.NewBuilder(
 		prompt.WithTemplate(prTemplate),
-		prompt.WithMaxDiffLength(cfg.PRReviewMaxDiffLength),
+		prompt.WithMaxDiffLength(cfg.PROpenMaxDiffLength),
 	)))
-	logger.Printf("prompt: using PR review template %q", cfg.PRReviewTemplatePath)
-	logger.Printf("prompt: using max diff length %d", cfg.PRReviewMaxDiffLength)
-	if cfg.PRReviewModel != "" {
-		opts = append(opts, review.WithReviewModel(cfg.PRReviewModel))
-		logger.Printf("review: using model %q", cfg.PRReviewModel)
+	logger.Printf("prompt: using PR open template %q", cfg.PROpenTemplatePath)
+	logger.Printf("prompt: using max diff length %d", cfg.PROpenMaxDiffLength)
+	if cfg.PROpenModel != "" {
+		opts = append(opts, review.WithReviewModel(cfg.PROpenModel))
+		logger.Printf("review: using model %q", cfg.PROpenModel)
 	}
 
 	// Create OpenCode client
