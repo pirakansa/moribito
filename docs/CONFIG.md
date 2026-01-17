@@ -45,6 +45,18 @@ Set the JSON config path via:
 
 Defaults apply when fields are omitted. Set `review.maxDiffLength` to `0` to omit diffs entirely.
 
+## Template Variables
+
+### PR Review Templates
+
+Available fields:
+`Title`, `Body`, `Head`, `Base`, `URL`, `Diff`, `Owner`, `Repo`, `RepoFullName`, `Number`
+
+### Issue Response Templates
+
+Available fields:
+`Title`, `Number`, `Author`, `Body`, `URL`, `Comment`, `CommentAuthor`, `CommentID`, `Owner`, `Repo`, `RepoFullName`
+
 ## Sample Templates
 
 ### PR Review Templates

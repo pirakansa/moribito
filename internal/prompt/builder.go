@@ -9,12 +9,16 @@ import (
 
 // PRReviewContext holds the data for PR review prompt templates.
 type PRReviewContext struct {
-	Title string // PR title
-	Body  string // PR description
-	Head  string // Head branch name
-	Base  string // Base branch name
-	URL   string // PR URL
-	Diff  string // PR diff content
+	Title        string // PR title
+	Body         string // PR description
+	Head         string // Head branch name
+	Base         string // Base branch name
+	URL          string // PR URL
+	Diff         string // PR diff content
+	Owner        string // Repository owner or organization
+	Repo         string // Repository name
+	RepoFullName string // Repository full name (owner/repo)
+	Number       int    // PR number
 }
 
 // IssueContext holds the data for issue response prompt templates.
@@ -27,6 +31,9 @@ type IssueContext struct {
 	Comment       string // Comment content to respond to
 	CommentAuthor string // Comment author
 	CommentID     int64  // Comment ID
+	Owner         string // Repository owner or organization
+	Repo          string // Repository name
+	RepoFullName  string // Repository full name (owner/repo)
 }
 
 // Builder constructs prompts from templates.

@@ -44,15 +44,19 @@ func TestBuilderWithOptions(t *testing.T) {
 }
 
 func TestBuildPRReviewPrompt(t *testing.T) {
-	tmpl := Template{Name: "pr", Content: "Title={{.Title}}\nBody={{.Body}}\nHead={{.Head}}\nBase={{.Base}}\nDiff={{.Diff}}"}
+	tmpl := Template{Name: "pr", Content: "Title={{.Title}}\nBody={{.Body}}\nHead={{.Head}}\nBase={{.Base}}\nDiff={{.Diff}}\nOwner={{.Owner}}\nRepo={{.Repo}}\nRepoFull={{.RepoFullName}}\nNumber={{.Number}}"}
 	b := NewBuilder(WithTemplate(tmpl))
 	ctx := PRReviewContext{
-		Title: "Add new feature",
-		Body:  "This PR adds an amazing feature",
-		Head:  "feature-branch",
-		Base:  "main",
-		URL:   "https://github.com/org/repo/pull/123",
-		Diff:  "+func newFunc() {}",
+		Title:        "Add new feature",
+		Body:         "This PR adds an amazing feature",
+		Head:         "feature-branch",
+		Base:         "main",
+		URL:          "https://github.com/org/repo/pull/123",
+		Diff:         "+func newFunc() {}",
+		Owner:        "org",
+		Repo:         "repo",
+		RepoFullName: "org/repo",
+		Number:       123,
 	}
 
 	prompt, err := b.BuildPRReviewPrompt(ctx)
@@ -67,6 +71,10 @@ func TestBuildPRReviewPrompt(t *testing.T) {
 		"feature-branch",
 		"main",
 		"+func newFunc() {}",
+		"org",
+		"repo",
+		"org/repo",
+		"123",
 	}
 
 	for _, check := range checks {
@@ -77,7 +85,7 @@ func TestBuildPRReviewPrompt(t *testing.T) {
 }
 
 func TestBuildIssueResponsePrompt(t *testing.T) {
-	tmpl := Template{Name: "issue", Content: "Title={{.Title}}\nNumber=#{{.Number}}\nAuthor=@{{.Author}}\nBody={{.Body}}\nComment={{.Comment}}\nCommentAuthor=@{{.CommentAuthor}}"}
+	tmpl := Template{Name: "issue", Content: "Title={{.Title}}\nNumber=#{{.Number}}\nAuthor=@{{.Author}}\nBody={{.Body}}\nComment={{.Comment}}\nCommentAuthor=@{{.CommentAuthor}}\nOwner={{.Owner}}\nRepo={{.Repo}}\nRepoFull={{.RepoFullName}}"}
 	b := NewBuilder(WithTemplate(tmpl))
 	ctx := IssueContext{
 		Title:         "Bug Report",
@@ -88,6 +96,9 @@ func TestBuildIssueResponsePrompt(t *testing.T) {
 		Comment:       "Can you help me fix this?",
 		CommentAuthor: "helper",
 		CommentID:     123,
+		Owner:         "org",
+		Repo:          "repo",
+		RepoFullName:  "org/repo",
 	}
 
 	prompt, err := b.BuildIssueResponsePrompt(ctx)
@@ -102,6 +113,9 @@ func TestBuildIssueResponsePrompt(t *testing.T) {
 		"Something is broken",
 		"Can you help me fix this?",
 		"@helper",
+		"org",
+		"repo",
+		"org/repo",
 	}
 
 	for _, check := range checks {

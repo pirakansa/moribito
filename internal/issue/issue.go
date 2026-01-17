@@ -173,6 +173,9 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ev
 		Comment:       s.ExtractQuestion(event.CommentBody),
 		CommentAuthor: event.CommentAuthor,
 		CommentID:     event.CommentID,
+		Owner:         event.Owner,
+		Repo:          event.Repo,
+		RepoFullName:  event.Owner + "/" + event.Repo,
 	}
 
 	// Build prompt

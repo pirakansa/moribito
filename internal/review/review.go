@@ -218,12 +218,16 @@ func (s *Service) requestAIReview(ctx context.Context, prInfo *githubapp.PullReq
 
 	// Build the review prompt using the prompt builder
 	reviewPrompt, err := s.promptBuilder.BuildPRReviewPrompt(prompt.PRReviewContext{
-		Title: prInfo.Title,
-		Body:  prInfo.Body,
-		Head:  prInfo.Head,
-		Base:  prInfo.Base,
-		URL:   prInfo.HTMLURL,
-		Diff:  diff,
+		Title:        prInfo.Title,
+		Body:         prInfo.Body,
+		Head:         prInfo.Head,
+		Base:         prInfo.Base,
+		URL:          prInfo.HTMLURL,
+		Diff:         diff,
+		Owner:        owner,
+		Repo:         repo,
+		RepoFullName: owner + "/" + repo,
+		Number:       number,
 	})
 	if err != nil {
 		return "", fmt.Errorf("build prompt: %w", err)
