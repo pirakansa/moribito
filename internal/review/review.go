@@ -89,7 +89,7 @@ func NewService(logger *log.Logger, clientFactory ClientFactory, opts ...Service
 
 // OnPullRequestOpened handles the event when a new pull request is created.
 // Flow:
-//  1. Acknowledge receipt with 👀 reaction
+//  1. Acknowledge receipt with 👍 reaction
 //  2. Process the pull request (review, analysis, etc.)
 //  3. Post results (comments, status, etc.)
 func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error {
@@ -125,16 +125,16 @@ func (s *Service) OnPullRequestOpened(ctx context.Context, pr PullRequest) error
 	return nil
 }
 
-// acknowledge adds 👀 (eyes) reaction to indicate the request was received.
+// acknowledge adds 👍 (thumbs up) reaction to indicate the request was received.
 func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient, owner, repo string, number int) error {
 	s.logger.Printf("review: acknowledging PR repo=%s/%s number=%d", owner, repo, number)
 
-	if err := client.AddIssueReaction(ctx, owner, repo, number, "eyes"); err != nil {
-		s.logger.Printf("review: failed to add eyes reaction: %v", err)
+	if err := client.AddIssueReaction(ctx, owner, repo, number, "+1"); err != nil {
+		s.logger.Printf("review: failed to add thumbs up reaction: %v", err)
 		return err
 	}
 
-	s.logger.Printf("review: acknowledged PR with eyes reaction")
+	s.logger.Printf("review: acknowledged PR with thumbs up reaction")
 	return nil
 }
 

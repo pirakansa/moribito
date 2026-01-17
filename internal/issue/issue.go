@@ -153,7 +153,7 @@ func (s *Service) createClient(ctx context.Context, installationID int64) (githu
 }
 
 func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) error {
-	return client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, "eyes")
+	return client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, "+1")
 }
 
 func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) error {
