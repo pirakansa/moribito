@@ -151,9 +151,15 @@ func TestNewTextMessageRequest(t *testing.T) {
 }
 
 func TestNewTextMessageRequestWithModel(t *testing.T) {
-	req := NewTextMessageRequestWithModel("Hello", "claude-3-opus")
-	if req.Model != "claude-3-opus" {
-		t.Errorf("Model = %q, want %q", req.Model, "claude-3-opus")
+	req := NewTextMessageRequestWithModel("Hello", "opencode/claude-3-opus")
+	if req.Model == nil {
+		t.Fatal("expected model to be set")
+	}
+	if req.Model.ProviderID != "opencode" {
+		t.Errorf("ProviderID = %q, want %q", req.Model.ProviderID, "opencode")
+	}
+	if req.Model.ModelID != "claude-3-opus" {
+		t.Errorf("ModelID = %q, want %q", req.Model.ModelID, "claude-3-opus")
 	}
 	if len(req.Parts) != 1 || req.Parts[0].Text != "Hello" {
 		t.Error("Parts not set correctly")

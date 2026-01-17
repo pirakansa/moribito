@@ -119,8 +119,11 @@ func TestOnIssueCommentWithResponseModel(t *testing.T) {
 	if mockOC.lastRequest == nil {
 		t.Fatal("expected SendMessage request to be captured")
 	}
-	if mockOC.lastRequest.Model != "issue-model" {
-		t.Fatalf("expected model issue-model, got %q", mockOC.lastRequest.Model)
+	if mockOC.lastRequest.Model == nil {
+		t.Fatal("expected model to be set")
+	}
+	if mockOC.lastRequest.Model.ModelID != "issue-model" {
+		t.Fatalf("expected model issue-model, got %q", mockOC.lastRequest.Model.ModelID)
 	}
 	if len(mockClient.comments) != 1 {
 		t.Fatalf("expected 1 comment, got %d", len(mockClient.comments))

@@ -358,8 +358,11 @@ func TestProcessWithReviewModel(t *testing.T) {
 	if mockOC.lastRequest == nil {
 		t.Fatal("expected SendMessage request to be captured")
 	}
-	if mockOC.lastRequest.Model != "review-model" {
-		t.Fatalf("expected model review-model, got %q", mockOC.lastRequest.Model)
+	if mockOC.lastRequest.Model == nil {
+		t.Fatal("expected model to be set")
+	}
+	if mockOC.lastRequest.Model.ModelID != "review-model" {
+		t.Fatalf("expected model review-model, got %q", mockOC.lastRequest.Model.ModelID)
 	}
 }
 
