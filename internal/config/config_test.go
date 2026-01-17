@@ -1,22 +1,17 @@
 package config
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestLoadDefaults(t *testing.T) {
-	t.Setenv("APP_ADDR", "")
-	t.Setenv("GITHUB_API_BASE_URL", "")
-	t.Setenv("GITHUB_WEBHOOK_PATH", "")
-	t.Setenv("OPENCODE_HOST", "")
-	t.Setenv("OPENCODE_PORT", "")
-	t.Setenv("OPENCODE_LONG_TIMEOUT_SECONDS", "")
-	t.Setenv("QUEUE_WORKERS", "")
-	t.Setenv("QUEUE_BUFFER", "")
-	t.Setenv("PR_REVIEW_TEMPLATE_PATH", "/tmp/pr.tmpl")
-	t.Setenv("PR_REVIEW_MODEL", "")
-	t.Setenv("PR_REVIEW_MAX_DIFF_LENGTH", "")
-	t.Setenv("ISSUE_RESPONSE_TEMPLATE_PATH", "/tmp/issue.tmpl")
-	t.Setenv("ISSUE_RESPONSE_MODEL", "")
-	t.Setenv("ISSUE_TRIGGER_PREFIX", "")
+	path := writeConfigFile(t, `{
+  "review": { "templatePath": "/tmp/pr.tmpl" },
+  "issue": { "responseTemplatePath": "/tmp/issue.tmpl" }
+}`)
+	t.Setenv("MORIBITO_CONFIG_PATH", path)
 
 	cfg, err := Load()
 	if err != nil {
@@ -66,10 +61,11 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
-func TestLoadInvalidInt(t *testing.T) {
-	t.Setenv("GITHUB_APP_ID", "nope")
+func TestLoadInvalidJSON(t *testing.T) {
+	path := writeConfigFile(t, `{"opencode": {"port": "nope"}}`)
+	t.Setenv("MORIBITO_CONFIG_PATH", path)
 	if _, err := Load(); err == nil {
-		t.Fatalf("expected error for invalid app id")
+		t.Fatalf("expected error for invalid json")
 	}
 }
 
@@ -104,4 +100,14 @@ func TestValidateForWebhook(t *testing.T) {
 	if err := cfg.ValidateForWebhook(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+}
+
+func writeConfigFile(t *testing.T, content string) string {
+	t.Helper()
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	return path
 }
