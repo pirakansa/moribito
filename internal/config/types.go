@@ -25,25 +25,40 @@ type Config struct {
 	PROpenTemplatePath  string // PR open prompt template file path
 	PROpenModel         string // OpenCode model for PR open response (optional)
 	PROpenMaxDiffLength int    // Max diff length for PR open prompt (0 disables diff)
+	PROpenConfigured    bool   // True if prOpen section is configured
+	PROpenTemplateSet   bool   // True if prOpen.templatePath is set explicitly
+	PROpenModelSet      bool   // True if prOpen.model is set explicitly
 
 	// PR comment response configuration
 	PRCommentTemplatePath  string // PR comment prompt template file path
 	PRCommentModel         string // OpenCode model for PR comment response (optional)
 	PRCommentMaxDiffLength int    // Max diff length for PR comment prompt (0 disables diff)
 	PRCommentTriggerPrefix string // Comment prefix to trigger PR comment response (default: @moribito)
+	PRCommentConfigured    bool   // True if prComment section is configured
+	PRCommentTemplateSet   bool   // True if prComment.templatePath is set explicitly
+	PRCommentModelSet      bool   // True if prComment.model is set explicitly
 
 	// Issue response configuration
 	IssueResponseTemplatePath string // Issue response prompt template file path
 	IssueResponseModel        string // OpenCode model for issue response (optional)
 	IssueTriggerPrefix        string // Comment prefix to trigger AI response (default: @moribito)
+	IssueCommentConfigured    bool   // True if issueComment section is configured
+	IssueCommentTemplateSet   bool   // True if issueComment.templatePath is set explicitly
+	IssueCommentModelSet      bool   // True if issueComment.responseModel is set explicitly
 
 	// Issue label response configuration
 	IssueLabelTemplatePath string   // Issue label prompt template file path (optional)
 	IssueLabelModel        string   // OpenCode model for issue label response (optional)
 	IssueLabelTriggers     []string // Labels that trigger issue responses
+	IssueLabelConfigured   bool     // True if issueLabel section is configured
+	IssueLabelTemplateSet  bool     // True if issueLabel.templatePath is set explicitly
+	IssueLabelModelSet     bool     // True if issueLabel.model is set explicitly
 
 	// PR label response configuration
 	PRLabelTemplatePath string   // PR label prompt template file path (optional)
 	PRLabelModel        string   // OpenCode model for PR label response (optional)
 	PRLabelTriggers     []string // Labels that trigger PR responses
+	PRLabelConfigured   bool     // True if prLabel section is configured
+	PRLabelTemplateSet  bool     // True if prLabel.templatePath is set explicitly
+	PRLabelModelSet     bool     // True if prLabel.model is set explicitly
 }

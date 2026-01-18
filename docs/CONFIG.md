@@ -59,7 +59,7 @@ Set the JSON config path via:
 }
 ```
 
-Defaults apply when fields are omitted. Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely.
+Defaults apply when fields are omitted. Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely. `prOpen` / `prComment` / `issueComment` / `issueLabel` / `prLabel` are optional, but when present they require `templatePath` and a model (`issueComment` uses `responseModel`).
 
 ## Template Variables
 
@@ -121,11 +121,11 @@ Example trigger:
 When configured, the app responds to issue or PR label events that match the configured labels.
 
 - `issueLabel.labels`: Triggers issue responses when a label is added to an issue.
-- `issueLabel.templatePath`: Template for label-triggered issue responses (optional; defaults to `issueComment.templatePath` behavior).
-- `issueLabel.model`: OpenCode model for label-triggered issue responses (optional; defaults to `issueComment.responseModel`).
+- `issueLabel.templatePath`: Template for label-triggered issue responses (required when `issueLabel` is set).
+- `issueLabel.model`: OpenCode model for label-triggered issue responses (required when `issueLabel` is set).
 - `prLabel.labels`: Triggers PR responses when a label is added to a pull request.
-- `prLabel.templatePath`: Template for label-triggered PR responses (optional; defaults to `prComment.templatePath` behavior).
-- `prLabel.model`: OpenCode model for label-triggered PR responses (optional; defaults to `prComment.model`).
+- `prLabel.templatePath`: Template for label-triggered PR responses (required when `prLabel` is set).
+- `prLabel.model`: OpenCode model for label-triggered PR responses (required when `prLabel` is set).
 
 Example:
 ```

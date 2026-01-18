@@ -21,6 +21,7 @@ type Service struct {
 	model          string
 	labelModel     string
 	labelTriggers  map[string]struct{}
+	commentEnabled bool
 }
 
 // ServiceOption configures the Service.
@@ -54,6 +55,13 @@ func WithResponseModel(model string) ServiceOption {
 	}
 }
 
+// WithCommentEnabled enables or disables issue comment handling.
+func WithCommentEnabled(enabled bool) ServiceOption {
+	return func(s *Service) {
+		s.commentEnabled = enabled
+	}
+}
+
 // WithLabelPromptBuilder sets a custom prompt builder for label responses.
 func WithLabelPromptBuilder(builder *prompt.Builder) ServiceOption {
 	return func(s *Service) {
@@ -78,10 +86,11 @@ func WithLabelResponseModel(model string) ServiceOption {
 // NewService creates a new issue response service.
 func NewService(logger *log.Logger, factory ClientFactory, opts ...ServiceOption) *Service {
 	s := &Service{
-		logger:        logger,
-		factory:       factory,
-		promptBuilder: prompt.NewBuilder(), // Template is required via options.
-		triggerPrefix: "@moribito",
+		logger:         logger,
+		factory:        factory,
+		promptBuilder:  prompt.NewBuilder(), // Template is required via options.
+		triggerPrefix:  "@moribito",
+		commentEnabled: true,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -117,6 +126,11 @@ func (s *Service) ShouldRespondToLabel(label string) bool {
 func (s *Service) OnIssueComment(ctx context.Context, event CommentEvent) error {
 	s.logger.Printf("issue: received comment on %s/%s#%d from @%s",
 		event.Owner, event.Repo, event.IssueNumber, event.CommentAuthor)
+
+	if !s.commentEnabled {
+		s.logger.Printf("issue: issueComment is disabled, skipping")
+		return nil
+	}
 
 	// Check if this comment should trigger a response
 	if !s.ShouldRespond(event.CommentBody) {

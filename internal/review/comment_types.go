@@ -41,6 +41,7 @@ type PRCommentService struct {
 	labelBuilder   *prompt.Builder
 	labelModel     string
 	labelTriggers  map[string]struct{}
+	commentEnabled bool
 }
 
 // PRCommentOption configures the PRCommentService.
@@ -71,6 +72,13 @@ func WithCommentTriggerPrefix(prefix string) PRCommentOption {
 func WithCommentModel(model string) PRCommentOption {
 	return func(s *PRCommentService) {
 		s.model = model
+	}
+}
+
+// WithCommentEnabled enables or disables PR comment handling.
+func WithCommentEnabled(enabled bool) PRCommentOption {
+	return func(s *PRCommentService) {
+		s.commentEnabled = enabled
 	}
 }
 

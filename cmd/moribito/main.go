@@ -64,7 +64,10 @@ func run() error {
 		return err
 	}
 
-	reviewer := review.NewService(logger, clientFactory, reviewOpts...)
+	var reviewer review.Reviewer
+	if cfg.PROpenConfigured {
+		reviewer = review.NewService(logger, clientFactory, reviewOpts...)
+	}
 
 	// Create Issue service for AI-powered issue responses
 	issueService, err := createIssueService(cfg, logger, clientFactory, ocClient)

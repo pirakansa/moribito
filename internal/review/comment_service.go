@@ -13,10 +13,11 @@ import (
 // NewPRCommentService creates a new PR comment response service.
 func NewPRCommentService(logger *log.Logger, factory ClientFactory, opts ...PRCommentOption) *PRCommentService {
 	s := &PRCommentService{
-		logger:        logger,
-		factory:       factory,
-		promptBuilder: prompt.NewBuilder(),
-		triggerPrefix: "@moribito",
+		logger:         logger,
+		factory:        factory,
+		promptBuilder:  prompt.NewBuilder(),
+		triggerPrefix:  "@moribito",
+		commentEnabled: true,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -42,6 +43,11 @@ func (s *PRCommentService) ShouldRespondToLabel(label string) bool {
 func (s *PRCommentService) OnPullRequestComment(ctx context.Context, event PRCommentEvent) error {
 	s.logger.Printf("pr-comment: received comment on %s/%s#%d from @%s",
 		event.Owner, event.Repo, event.Number, event.CommentAuthor)
+
+	if !s.commentEnabled {
+		s.logger.Printf("pr-comment: prComment is disabled, skipping")
+		return nil
+	}
 
 	if !s.ShouldRespond(event.CommentBody) {
 		s.logger.Printf("pr-comment: comment does not start with %q, skipping", s.triggerPrefix)
