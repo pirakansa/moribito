@@ -175,6 +175,12 @@ export MORIBITO_CONFIG_PATH=/path/to/moribito.json
 ./bin/host/moribito --print-installation-token
 ```
 
+### Show Version
+
+```bash
+./bin/host/moribito -v
+```
+
 ## Authentication Flow
 
 ```mermaid
