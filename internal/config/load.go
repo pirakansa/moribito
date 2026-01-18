@@ -137,6 +137,9 @@ func applyFileConfig(cfg *Config, fileCfg fileConfig) {
 		cfg.PRLabelModel = fileCfg.PRLabel.Model
 		cfg.PRLabelModelSet = true
 	}
+	if fileCfg.PRLabel.MaxDiffLength != nil {
+		cfg.PRLabelMaxDiffLength = *fileCfg.PRLabel.MaxDiffLength
+	}
 	if fileCfg.PRLabel.Labels != nil || fileCfg.PRLabel.TemplatePath != "" || fileCfg.PRLabel.Model != "" {
 		cfg.PRLabelConfigured = true
 	}

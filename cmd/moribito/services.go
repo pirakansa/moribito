@@ -152,7 +152,7 @@ func createPRCommentService(cfg config.Config, logger *log.Logger, factory *gith
 		}
 		opts = append(opts, review.WithCommentLabelPromptBuilder(prompt.NewBuilder(
 			prompt.WithTemplate(labelTemplate),
-			prompt.WithMaxDiffLength(cfg.PRCommentMaxDiffLength),
+			prompt.WithMaxDiffLength(cfg.PRLabelMaxDiffLength),
 		)))
 		logger.Printf("prompt: using PR label template %q", cfg.PRLabelTemplatePath)
 	}

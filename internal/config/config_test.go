@@ -133,6 +133,7 @@ func TestLoadOverrides(t *testing.T) {
 	"prLabel": {
 		"templatePath": "/tmp/pr-label.tmpl",
 		"model": "custom/pr-label",
+		"maxDiffLength": 456,
 		"labels": ["needs-review"]
 	}
 }`)
@@ -225,6 +226,9 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if cfg.PRLabelModel != "custom/pr-label" {
 		t.Fatalf("expected pr label model custom/pr-label, got %s", cfg.PRLabelModel)
+	}
+	if cfg.PRLabelMaxDiffLength != 456 {
+		t.Fatalf("expected pr label max diff length 456, got %d", cfg.PRLabelMaxDiffLength)
 	}
 	if !cfg.PRLabelConfigured || !cfg.PRLabelTemplateSet || !cfg.PRLabelModelSet {
 		t.Fatalf("expected pr label to be configured with template/model set")

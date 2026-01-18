@@ -55,10 +55,11 @@ type Config struct {
 	IssueLabelModelSet     bool     // True if issueLabel.model is set explicitly
 
 	// PR label response configuration
-	PRLabelTemplatePath string   // PR label prompt template file path (optional)
-	PRLabelModel        string   // OpenCode model for PR label response (optional)
-	PRLabelTriggers     []string // Labels that trigger PR responses
-	PRLabelConfigured   bool     // True if prLabel section is configured
-	PRLabelTemplateSet  bool     // True if prLabel.templatePath is set explicitly
-	PRLabelModelSet     bool     // True if prLabel.model is set explicitly
+	PRLabelTemplatePath  string   // PR label prompt template file path (optional)
+	PRLabelModel         string   // OpenCode model for PR label response (optional)
+	PRLabelTriggers      []string // Labels that trigger PR responses
+	PRLabelMaxDiffLength int      // Max diff length for PR label prompt (0 disables diff)
+	PRLabelConfigured    bool     // True if prLabel section is configured
+	PRLabelTemplateSet   bool     // True if prLabel.templatePath is set explicitly
+	PRLabelModelSet      bool     // True if prLabel.model is set explicitly
 }

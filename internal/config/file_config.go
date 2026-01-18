@@ -43,8 +43,9 @@ type fileConfig struct {
 		Labels       []string `json:"labels"`
 	} `json:"issueLabel"`
 	PRLabel struct {
-		TemplatePath string   `json:"templatePath"`
-		Model        string   `json:"model"`
-		Labels       []string `json:"labels"`
+		TemplatePath  string   `json:"templatePath"`
+		Model         string   `json:"model"`
+		MaxDiffLength *int     `json:"maxDiffLength"`
+		Labels        []string `json:"labels"`
 	} `json:"prLabel"`
 }

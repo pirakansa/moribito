@@ -54,6 +54,7 @@ Set the JSON config path via:
   "prLabel": {
     "templatePath": "docs/templates/pr-response-comment.md.tmpl",
     "model": "opencode/big-pickle",
+    "maxDiffLength": 50000,
     "labels": ["needs-review"]
   }
 }
@@ -126,6 +127,7 @@ When configured, the app responds to issue or PR label events that match the con
 - `prLabel.labels`: Triggers PR responses when a label is added to a pull request.
 - `prLabel.templatePath`: Template for label-triggered PR responses (required when `prLabel` is set).
 - `prLabel.model`: OpenCode model for label-triggered PR responses (required when `prLabel` is set).
+- `prLabel.maxDiffLength`: Max diff length for label-triggered PR responses (optional; defaults to `50000`).
 
 Example:
 ```
@@ -137,6 +139,7 @@ Example:
 "prLabel": {
   "templatePath": "docs/templates/pr-response-comment.md.tmpl",
   "model": "opencode/big-pickle",
+  "maxDiffLength": 50000,
   "labels": ["needs-review"]
 }
 ```

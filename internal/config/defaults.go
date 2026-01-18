@@ -12,6 +12,7 @@ const (
 	defaultOpenCodeLongTimeout = 10 * time.Minute
 	defaultPROpenMaxDiffLen    = 50000
 	defaultPRCommentMaxDiffLen = 50000
+	defaultPRLabelMaxDiffLen   = 50000
 	defaultIssueTriggerPrefix  = "@moribito"
 	defaultQueueWorkers        = 2
 	defaultQueueBuffer         = 100
@@ -34,5 +35,6 @@ func defaultConfig() Config {
 		PRCommentTriggerPrefix: defaultIssueTriggerPrefix,
 		IssueResponseModel:     defaultOpenCodeModel,
 		IssueTriggerPrefix:     defaultIssueTriggerPrefix,
+		PRLabelMaxDiffLength:   defaultPRLabelMaxDiffLen,
 	}
 }
