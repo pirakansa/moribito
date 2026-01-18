@@ -1,0 +1,14 @@
+{
+  "action": "labeled",
+  "installation": { "id": 123 },
+  "issue": {
+    "number": 42,
+    "title": "Example issue",
+    "body": "Issue details",
+    "user": { "login": "reporter" },
+    "html_url": "https://github.com/example/repo/issues/42"
+  },
+  "label": { "name": "needs-triage" },
+  "repository": { "full_name": "example/repo" },
+  "sender": { "login": "labeler" }
+}

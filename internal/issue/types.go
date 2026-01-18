@@ -48,3 +48,17 @@ type CommentEvent struct {
 	IssueAuthor    string
 	IssueURL       string
 }
+
+// LabelEvent represents an issue label event.
+type LabelEvent struct {
+	InstallationID int64
+	Owner          string
+	Repo           string
+	IssueNumber    int
+	IssueTitle     string
+	IssueBody      string
+	IssueAuthor    string
+	IssueURL       string
+	LabelName      string
+	Labeler        string
+}

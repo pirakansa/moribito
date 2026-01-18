@@ -9,6 +9,10 @@ import (
 )
 
 func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) (issueOutcome, error) {
+	return s.processWithBuilder(ctx, client, event, s.promptBuilder, s.model)
+}
+
+func (s *Service) processWithBuilder(ctx context.Context, client githubapp.GitHubClient, event CommentEvent, builder *prompt.Builder, model string) (issueOutcome, error) {
 	// Check if OpenCode is available
 	if s.opencodeClient == nil || !s.opencodeClient.IsHealthy(ctx) {
 		s.logger.Printf("issue: opencode not available, skipping AI response")
@@ -31,20 +35,20 @@ func (s *Service) process(ctx context.Context, client githubapp.GitHubClient, ev
 	}
 
 	// Build prompt
-	promptText, err := s.promptBuilder.BuildIssueResponsePrompt(issueCtx)
+	promptText, err := builder.BuildIssueResponsePrompt(issueCtx)
 	if err != nil {
 		return issueOutcome{aiAttempted: false, aiSucceeded: false}, fmt.Errorf("build prompt: %w", err)
 	}
 
 	// Request AI response
-	response, err := s.requestAIResponse(ctx, promptText)
+	response, err := s.requestAIResponseWithModel(ctx, promptText, model)
 	if err != nil {
 		s.logger.Printf("issue: AI response failed: %v", err)
 		return issueOutcome{aiAttempted: true, aiSucceeded: false}, nil
 	}
 
 	// Post response as comment
-	formattedResponse := s.promptBuilder.FormatIssueResponse(response)
+	formattedResponse := builder.FormatIssueResponse(response)
 	commentClient, err := s.createClient(ctx, event.InstallationID)
 	if err != nil {
 		return issueOutcome{aiAttempted: true, aiSucceeded: true}, fmt.Errorf("refresh client: %w", err)

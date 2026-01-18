@@ -106,6 +106,16 @@ func TestLoadOverrides(t *testing.T) {
 		"templatePath": "/tmp/issue.tmpl",
 		"responseModel": "custom/issue",
 		"triggerPrefix": "@issue"
+	},
+	"issueLabel": {
+		"templatePath": "/tmp/issue-label.tmpl",
+		"model": "custom/issue-label",
+		"labels": ["triage", "needs-info"]
+	},
+	"prLabel": {
+		"templatePath": "/tmp/pr-label.tmpl",
+		"model": "custom/pr-label",
+		"labels": ["needs-review"]
 	}
 }`)
 	t.Setenv("MORIBITO_CONFIG_PATH", path)
@@ -170,6 +180,24 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if cfg.IssueTriggerPrefix != "@issue" {
 		t.Fatalf("expected issue trigger prefix @issue, got %s", cfg.IssueTriggerPrefix)
+	}
+	if cfg.IssueLabelTemplatePath != "/tmp/issue-label.tmpl" {
+		t.Fatalf("expected issue label template path /tmp/issue-label.tmpl, got %s", cfg.IssueLabelTemplatePath)
+	}
+	if cfg.IssueLabelModel != "custom/issue-label" {
+		t.Fatalf("expected issue label model custom/issue-label, got %s", cfg.IssueLabelModel)
+	}
+	if len(cfg.IssueLabelTriggers) != 2 || cfg.IssueLabelTriggers[0] != "triage" || cfg.IssueLabelTriggers[1] != "needs-info" {
+		t.Fatalf("expected issue label triggers [triage needs-info], got %v", cfg.IssueLabelTriggers)
+	}
+	if cfg.PRLabelTemplatePath != "/tmp/pr-label.tmpl" {
+		t.Fatalf("expected pr label template path /tmp/pr-label.tmpl, got %s", cfg.PRLabelTemplatePath)
+	}
+	if cfg.PRLabelModel != "custom/pr-label" {
+		t.Fatalf("expected pr label model custom/pr-label, got %s", cfg.PRLabelModel)
+	}
+	if len(cfg.PRLabelTriggers) != 1 || cfg.PRLabelTriggers[0] != "needs-review" {
+		t.Fatalf("expected pr label triggers [needs-review], got %v", cfg.PRLabelTriggers)
 	}
 }
 

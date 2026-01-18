@@ -31,6 +31,7 @@ type Router struct {
 //   - installation: app installed/uninstalled events
 //   - installation_repositories: repository selection changes
 //   - pull_request: PR opened, closed, synchronized, etc.
+//   - issues: issues opened, labeled, etc.
 //   - issue_comment: comments on issues and PRs
 //   - check_run: CI check status updates
 func NewRouter(logger *log.Logger, submitter Submitter, reviewer review.Reviewer, issueService *issue.Service, prCommenter review.PRCommenter) *Router {
@@ -42,7 +43,8 @@ func NewRouter(logger *log.Logger, submitter Submitter, reviewer review.Reviewer
 	// Register default handlers for common GitHub App events
 	r.Register("installation", HandleInstallation(logger, submitter))
 	r.Register("installation_repositories", HandleInstallationRepositories(logger, submitter))
-	r.Register("pull_request", HandlePullRequest(logger, submitter, reviewer))
+	r.Register("pull_request", HandlePullRequest(logger, submitter, reviewer, prCommenter))
+	r.Register("issues", HandleIssues(logger, submitter, issueService))
 	r.Register("issue_comment", HandleIssueComment(logger, submitter, issueService, prCommenter))
 	r.Register("check_run", HandleCheckRun(logger, submitter))
 

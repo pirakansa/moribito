@@ -37,4 +37,14 @@ type fileConfig struct {
 		ResponseModel string `json:"responseModel"`
 		TriggerPrefix string `json:"triggerPrefix"`
 	} `json:"issueComment"`
+	IssueLabel struct {
+		TemplatePath string   `json:"templatePath"`
+		Model        string   `json:"model"`
+		Labels       []string `json:"labels"`
+	} `json:"issueLabel"`
+	PRLabel struct {
+		TemplatePath string   `json:"templatePath"`
+		Model        string   `json:"model"`
+		Labels       []string `json:"labels"`
+	} `json:"prLabel"`
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/pirakansa/moribito/internal/opencode"
 )
 
-func (s *PRCommentService) requestAIResponse(ctx context.Context, promptText string, event PRCommentEvent) (string, error) {
+func (s *PRCommentService) requestAIResponseWithModel(ctx context.Context, promptText string, event PRCommentEvent, model string) (string, error) {
 	session, err := s.opencodeClient.CreateSession(ctx, &opencode.CreateSessionRequest{
 		Title: fmt.Sprintf("PR Comment: %s/%s#%d", event.Owner, event.Repo, event.Number),
 	})
@@ -19,8 +19,8 @@ func (s *PRCommentService) requestAIResponse(ctx context.Context, promptText str
 	}()
 
 	req := opencode.NewTextMessageRequest(promptText)
-	if s.model != "" {
-		req = opencode.NewTextMessageRequestWithModel(promptText, s.model)
+	if model != "" {
+		req = opencode.NewTextMessageRequestWithModel(promptText, model)
 	}
 	resp, err := s.opencodeClient.SendMessage(ctx, session.ID, req)
 	if err != nil {

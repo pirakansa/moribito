@@ -36,4 +36,14 @@ type Config struct {
 	IssueResponseTemplatePath string // Issue response prompt template file path
 	IssueResponseModel        string // OpenCode model for issue response (optional)
 	IssueTriggerPrefix        string // Comment prefix to trigger AI response (default: @moribito)
+
+	// Issue label response configuration
+	IssueLabelTemplatePath string   // Issue label prompt template file path (optional)
+	IssueLabelModel        string   // OpenCode model for issue label response (optional)
+	IssueLabelTriggers     []string // Labels that trigger issue responses
+
+	// PR label response configuration
+	PRLabelTemplatePath string   // PR label prompt template file path (optional)
+	PRLabelModel        string   // OpenCode model for PR label response (optional)
+	PRLabelTriggers     []string // Labels that trigger PR responses
 }

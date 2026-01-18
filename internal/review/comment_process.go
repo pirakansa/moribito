@@ -9,6 +9,10 @@ import (
 )
 
 func (s *PRCommentService) process(ctx context.Context, client githubapp.GitHubClient, event PRCommentEvent) (commentOutcome, error) {
+	return s.processWithBuilder(ctx, client, event, s.promptBuilder, s.model)
+}
+
+func (s *PRCommentService) processWithBuilder(ctx context.Context, client githubapp.GitHubClient, event PRCommentEvent, builder *prompt.Builder, model string) (commentOutcome, error) {
 	if s.opencodeClient == nil || !s.opencodeClient.IsHealthy(ctx) {
 		s.logger.Printf("pr-comment: opencode not available, skipping AI response")
 		return commentOutcome{aiAttempted: false, aiSucceeded: true}, nil
@@ -24,7 +28,7 @@ func (s *PRCommentService) process(ctx context.Context, client githubapp.GitHubC
 		return commentOutcome{aiAttempted: false, aiSucceeded: false}, fmt.Errorf("get pull request diff: %w", err)
 	}
 
-	promptText, err := s.promptBuilder.BuildPRReviewPrompt(prompt.PRReviewContext{
+	promptText, err := builder.BuildPRReviewPrompt(prompt.PRReviewContext{
 		Title:        prInfo.Title,
 		Body:         prInfo.Body,
 		Head:         prInfo.Head,
@@ -40,13 +44,13 @@ func (s *PRCommentService) process(ctx context.Context, client githubapp.GitHubC
 		return commentOutcome{aiAttempted: false, aiSucceeded: false}, fmt.Errorf("build prompt: %w", err)
 	}
 
-	response, err := s.requestAIResponse(ctx, promptText, event)
+	response, err := s.requestAIResponseWithModel(ctx, promptText, event, model)
 	if err != nil {
 		s.logger.Printf("pr-comment: AI response failed: %v", err)
 		return commentOutcome{aiAttempted: true, aiSucceeded: false}, nil
 	}
 
-	formattedResponse := s.promptBuilder.FormatReviewComment(response)
+	formattedResponse := builder.FormatReviewComment(response)
 	commentClient, err := s.createClient(ctx, event.InstallationID)
 	if err != nil {
 		return commentOutcome{aiAttempted: true, aiSucceeded: true}, fmt.Errorf("refresh client: %w", err)

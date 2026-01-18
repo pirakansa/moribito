@@ -75,6 +75,24 @@ func createIssueService(cfg config.Config, logger *log.Logger, factory *githubap
 		opts = append(opts, issue.WithTriggerPrefix(cfg.IssueTriggerPrefix))
 		logger.Printf("issue: using trigger prefix %q", cfg.IssueTriggerPrefix)
 	}
+	if cfg.IssueLabelTemplatePath != "" {
+		labelTemplate, err := prompt.LoadTemplateFromFile(cfg.IssueLabelTemplatePath)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, issue.WithLabelPromptBuilder(prompt.NewBuilder(
+			prompt.WithTemplate(labelTemplate),
+		)))
+		logger.Printf("prompt: using issue label template %q", cfg.IssueLabelTemplatePath)
+	}
+	if cfg.IssueLabelModel != "" {
+		opts = append(opts, issue.WithLabelResponseModel(cfg.IssueLabelModel))
+		logger.Printf("issue: using label model %q", cfg.IssueLabelModel)
+	}
+	if len(cfg.IssueLabelTriggers) != 0 {
+		opts = append(opts, issue.WithLabelTriggers(cfg.IssueLabelTriggers))
+		logger.Printf("issue: using label triggers %v", cfg.IssueLabelTriggers)
+	}
 
 	return issue.NewService(logger, factory, opts...), nil
 }
@@ -102,6 +120,25 @@ func createPRCommentService(cfg config.Config, logger *log.Logger, factory *gith
 	if cfg.PRCommentTriggerPrefix != "" {
 		opts = append(opts, review.WithCommentTriggerPrefix(cfg.PRCommentTriggerPrefix))
 		logger.Printf("pr-comment: using trigger prefix %q", cfg.PRCommentTriggerPrefix)
+	}
+	if cfg.PRLabelTemplatePath != "" {
+		labelTemplate, err := prompt.LoadTemplateFromFile(cfg.PRLabelTemplatePath)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, review.WithCommentLabelPromptBuilder(prompt.NewBuilder(
+			prompt.WithTemplate(labelTemplate),
+			prompt.WithMaxDiffLength(cfg.PRCommentMaxDiffLength),
+		)))
+		logger.Printf("prompt: using PR label template %q", cfg.PRLabelTemplatePath)
+	}
+	if cfg.PRLabelModel != "" {
+		opts = append(opts, review.WithCommentLabelModel(cfg.PRLabelModel))
+		logger.Printf("pr-comment: using label model %q", cfg.PRLabelModel)
+	}
+	if len(cfg.PRLabelTriggers) != 0 {
+		opts = append(opts, review.WithCommentLabelTriggers(cfg.PRLabelTriggers))
+		logger.Printf("pr-comment: using label triggers %v", cfg.PRLabelTriggers)
 	}
 
 	return review.NewPRCommentService(logger, factory, opts...), nil

@@ -27,6 +27,7 @@ type PRCommentEvent struct {
 // PRCommenter defines the interface for handling PR comment responses.
 type PRCommenter interface {
 	OnPullRequestComment(ctx context.Context, event PRCommentEvent) error
+	OnPullRequestLabeled(ctx context.Context, event PRLabelEvent) error
 }
 
 // PRCommentService handles AI-powered PR comment responses.
@@ -37,6 +38,9 @@ type PRCommentService struct {
 	promptBuilder  *prompt.Builder
 	triggerPrefix  string
 	model          string
+	labelBuilder   *prompt.Builder
+	labelModel     string
+	labelTriggers  map[string]struct{}
 }
 
 // PRCommentOption configures the PRCommentService.
@@ -68,6 +72,37 @@ func WithCommentModel(model string) PRCommentOption {
 	return func(s *PRCommentService) {
 		s.model = model
 	}
+}
+
+// WithCommentLabelPromptBuilder sets a custom prompt builder for label responses.
+func WithCommentLabelPromptBuilder(builder *prompt.Builder) PRCommentOption {
+	return func(s *PRCommentService) {
+		s.labelBuilder = builder
+	}
+}
+
+// WithCommentLabelTriggers sets labels that trigger PR responses.
+func WithCommentLabelTriggers(labels []string) PRCommentOption {
+	return func(s *PRCommentService) {
+		s.labelTriggers = normalizeLabelSet(labels)
+	}
+}
+
+// WithCommentLabelModel sets a specific OpenCode model for PR label responses.
+func WithCommentLabelModel(model string) PRCommentOption {
+	return func(s *PRCommentService) {
+		s.labelModel = model
+	}
+}
+
+// PRLabelEvent represents a pull request label event.
+type PRLabelEvent struct {
+	InstallationID int64
+	Owner          string
+	Repo           string
+	Number         int
+	LabelName      string
+	Labeler        string
 }
 
 type commentOutcome struct {

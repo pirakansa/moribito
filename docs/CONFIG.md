@@ -45,6 +45,16 @@ Set the JSON config path via:
     "templatePath": "docs/templates/issue-response.md.tmpl",
     "responseModel": "opencode/big-pickle",
     "triggerPrefix": "@moribito"
+  },
+  "issueLabel": {
+    "templatePath": "docs/templates/issue-response.md.tmpl",
+    "model": "opencode/big-pickle",
+    "labels": ["needs-triage", "ai-response"]
+  },
+  "prLabel": {
+    "templatePath": "docs/templates/pr-response-comment.md.tmpl",
+    "model": "opencode/big-pickle",
+    "labels": ["needs-review"]
   }
 }
 ```
@@ -104,6 +114,31 @@ The app responds to issue comments that start with `@moribito`. When triggered:
 Example trigger:
 ```
 @moribito このエラーの原因を教えてください
+```
+
+## Label Triggers
+
+When configured, the app responds to issue or PR label events that match the configured labels.
+
+- `issueLabel.labels`: Triggers issue responses when a label is added to an issue.
+- `issueLabel.templatePath`: Template for label-triggered issue responses (optional; defaults to `issueComment.templatePath` behavior).
+- `issueLabel.model`: OpenCode model for label-triggered issue responses (optional; defaults to `issueComment.responseModel`).
+- `prLabel.labels`: Triggers PR responses when a label is added to a pull request.
+- `prLabel.templatePath`: Template for label-triggered PR responses (optional; defaults to `prComment.templatePath` behavior).
+- `prLabel.model`: OpenCode model for label-triggered PR responses (optional; defaults to `prComment.model`).
+
+Example:
+```
+"issueLabel": {
+  "templatePath": "docs/templates/issue-response.md.tmpl",
+  "model": "opencode/big-pickle",
+  "labels": ["needs-triage"]
+},
+"prLabel": {
+  "templatePath": "docs/templates/pr-response-comment.md.tmpl",
+  "model": "opencode/big-pickle",
+  "labels": ["needs-review"]
+}
 ```
 
 ## Usage Example

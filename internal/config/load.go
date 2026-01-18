@@ -97,4 +97,22 @@ func applyFileConfig(cfg *Config, fileCfg fileConfig) {
 	if fileCfg.IssueComment.TriggerPrefix != "" {
 		cfg.IssueTriggerPrefix = fileCfg.IssueComment.TriggerPrefix
 	}
+	if fileCfg.IssueLabel.Labels != nil {
+		cfg.IssueLabelTriggers = fileCfg.IssueLabel.Labels
+	}
+	if fileCfg.IssueLabel.TemplatePath != "" {
+		cfg.IssueLabelTemplatePath = fileCfg.IssueLabel.TemplatePath
+	}
+	if fileCfg.IssueLabel.Model != "" {
+		cfg.IssueLabelModel = fileCfg.IssueLabel.Model
+	}
+	if fileCfg.PRLabel.Labels != nil {
+		cfg.PRLabelTriggers = fileCfg.PRLabel.Labels
+	}
+	if fileCfg.PRLabel.TemplatePath != "" {
+		cfg.PRLabelTemplatePath = fileCfg.PRLabel.TemplatePath
+	}
+	if fileCfg.PRLabel.Model != "" {
+		cfg.PRLabelModel = fileCfg.PRLabel.Model
+	}
 }

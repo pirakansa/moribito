@@ -16,8 +16,11 @@ type Service struct {
 	factory        ClientFactory
 	opencodeClient OpenCodeClient
 	promptBuilder  *prompt.Builder
+	labelBuilder   *prompt.Builder
 	triggerPrefix  string // Comment prefix to trigger AI response (e.g., "@moribito")
 	model          string
+	labelModel     string
+	labelTriggers  map[string]struct{}
 }
 
 // ServiceOption configures the Service.
@@ -51,6 +54,27 @@ func WithResponseModel(model string) ServiceOption {
 	}
 }
 
+// WithLabelPromptBuilder sets a custom prompt builder for label responses.
+func WithLabelPromptBuilder(builder *prompt.Builder) ServiceOption {
+	return func(s *Service) {
+		s.labelBuilder = builder
+	}
+}
+
+// WithLabelTriggers sets labels that trigger issue responses.
+func WithLabelTriggers(labels []string) ServiceOption {
+	return func(s *Service) {
+		s.labelTriggers = normalizeLabelSet(labels)
+	}
+}
+
+// WithLabelResponseModel sets a specific OpenCode model for issue label responses.
+func WithLabelResponseModel(model string) ServiceOption {
+	return func(s *Service) {
+		s.labelModel = model
+	}
+}
+
 // NewService creates a new issue response service.
 func NewService(logger *log.Logger, factory ClientFactory, opts ...ServiceOption) *Service {
 	s := &Service{
@@ -77,6 +101,15 @@ func (s *Service) ExtractQuestion(comment string) string {
 		return strings.TrimSpace(trimmed[len(s.triggerPrefix):])
 	}
 	return trimmed
+}
+
+// ShouldRespondToLabel checks if a label should trigger a response.
+func (s *Service) ShouldRespondToLabel(label string) bool {
+	if len(s.labelTriggers) == 0 {
+		return false
+	}
+	_, ok := s.labelTriggers[label]
+	return ok
 }
 
 // OnIssueComment handles an issue comment event.
@@ -113,6 +146,55 @@ func (s *Service) OnIssueComment(ctx context.Context, event CommentEvent) error 
 	return nil
 }
 
+// OnIssueLabeled handles issue label events and responds with AI if configured.
+func (s *Service) OnIssueLabeled(ctx context.Context, event LabelEvent) error {
+	s.logger.Printf("issue: labeled %s/%s#%d label=%s",
+		event.Owner, event.Repo, event.IssueNumber, event.LabelName)
+
+	if !s.ShouldRespondToLabel(event.LabelName) {
+		s.logger.Printf("issue: label %q not configured, skipping", event.LabelName)
+		return nil
+	}
+
+	client, err := s.createClient(ctx, event.InstallationID)
+	if err != nil {
+		return fmt.Errorf("create client: %w", err)
+	}
+
+	if err := s.acknowledgeIssue(ctx, client, event); err != nil {
+		s.logger.Printf("issue: failed to acknowledge label event: %v", err)
+	}
+
+	commentEvent := CommentEvent{
+		InstallationID: event.InstallationID,
+		Owner:          event.Owner,
+		Repo:           event.Repo,
+		IssueNumber:    event.IssueNumber,
+		IssueTitle:     event.IssueTitle,
+		IssueBody:      event.IssueBody,
+		IssueAuthor:    event.IssueAuthor,
+		IssueURL:       event.IssueURL,
+		CommentAuthor:  event.Labeler,
+	}
+
+	builder := s.labelBuilder
+	if builder == nil {
+		builder = s.promptBuilder
+	}
+	model := s.labelModel
+	if model == "" {
+		model = s.model
+	}
+
+	outcome, err := s.processWithBuilder(ctx, client, commentEvent, builder, model)
+	if err != nil {
+		return err
+	}
+
+	s.completeIssue(ctx, client, event, outcome)
+	return nil
+}
+
 func (s *Service) createClient(ctx context.Context, installationID int64) (githubapp.GitHubClient, error) {
 	if s.factory == nil {
 		return nil, fmt.Errorf("client factory not configured")
@@ -122,6 +204,10 @@ func (s *Service) createClient(ctx context.Context, installationID int64) (githu
 
 func (s *Service) acknowledge(ctx context.Context, client githubapp.GitHubClient, event CommentEvent) error {
 	return client.AddCommentReaction(ctx, event.Owner, event.Repo, event.CommentID, issueReactionEyes)
+}
+
+func (s *Service) acknowledgeIssue(ctx context.Context, client githubapp.GitHubClient, event LabelEvent) error {
+	return client.AddIssueReaction(ctx, event.Owner, event.Repo, event.IssueNumber, issueReactionEyes)
 }
 
 type issueOutcome struct {
@@ -141,4 +227,36 @@ func (s *Service) complete(ctx context.Context, client githubapp.GitHubClient, e
 	}
 
 	s.logger.Printf("issue: added completion reaction %q", reaction)
+}
+
+func (s *Service) completeIssue(ctx context.Context, client githubapp.GitHubClient, event LabelEvent, outcome issueOutcome) {
+	reaction := issueReactionThumbsUp
+	if outcome.aiAttempted && !outcome.aiSucceeded {
+		reaction = issueReactionConfused
+	}
+
+	if err := client.AddIssueReaction(ctx, event.Owner, event.Repo, event.IssueNumber, reaction); err != nil {
+		s.logger.Printf("issue: failed to add completion reaction %q: %v", reaction, err)
+		return
+	}
+
+	s.logger.Printf("issue: added completion reaction %q", reaction)
+}
+
+func normalizeLabelSet(labels []string) map[string]struct{} {
+	if len(labels) == 0 {
+		return nil
+	}
+	set := make(map[string]struct{}, len(labels))
+	for _, label := range labels {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			continue
+		}
+		set[label] = struct{}{}
+	}
+	if len(set) == 0 {
+		return nil
+	}
+	return set
 }

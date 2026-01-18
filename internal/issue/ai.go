@@ -7,7 +7,7 @@ import (
 	"github.com/pirakansa/moribito/internal/opencode"
 )
 
-func (s *Service) requestAIResponse(ctx context.Context, promptText string) (string, error) {
+func (s *Service) requestAIResponseWithModel(ctx context.Context, promptText, model string) (string, error) {
 	// Create session for this issue response
 	session, err := s.opencodeClient.CreateSession(ctx, &opencode.CreateSessionRequest{
 		Title: "Issue Response",
@@ -22,8 +22,8 @@ func (s *Service) requestAIResponse(ctx context.Context, promptText string) (str
 
 	// Send prompt and get response
 	req := opencode.NewTextMessageRequest(promptText)
-	if s.model != "" {
-		req = opencode.NewTextMessageRequestWithModel(promptText, s.model)
+	if model != "" {
+		req = opencode.NewTextMessageRequestWithModel(promptText, model)
 	}
 	msg, err := s.opencodeClient.SendMessage(ctx, session.ID, req)
 	if err != nil {
