@@ -27,11 +27,45 @@ func (c Config) ValidateForWebhook() error {
 	if strings.TrimSpace(c.GitHubWebhookPath) == "" {
 		return fmt.Errorf("server.webhookPath is required")
 	}
-	if strings.TrimSpace(c.PROpenTemplatePath) == "" {
-		return fmt.Errorf("prOpen.templatePath is required")
+	if c.PROpenConfigured {
+		if !c.PROpenTemplateSet {
+			return fmt.Errorf("prOpen.templatePath is required")
+		}
+		if !c.PROpenModelSet {
+			return fmt.Errorf("prOpen.model is required")
+		}
 	}
-	if strings.TrimSpace(c.IssueResponseTemplatePath) == "" {
-		return fmt.Errorf("issueComment.templatePath is required")
+	if c.PRCommentConfigured {
+		if !c.PRCommentTemplateSet {
+			return fmt.Errorf("prComment.templatePath is required")
+		}
+		if !c.PRCommentModelSet {
+			return fmt.Errorf("prComment.model is required")
+		}
+	}
+	if c.IssueCommentConfigured {
+		if !c.IssueCommentTemplateSet {
+			return fmt.Errorf("issueComment.templatePath is required")
+		}
+		if !c.IssueCommentModelSet {
+			return fmt.Errorf("issueComment.responseModel is required")
+		}
+	}
+	if c.IssueLabelConfigured {
+		if !c.IssueLabelTemplateSet {
+			return fmt.Errorf("issueLabel.templatePath is required")
+		}
+		if !c.IssueLabelModelSet {
+			return fmt.Errorf("issueLabel.model is required")
+		}
+	}
+	if c.PRLabelConfigured {
+		if !c.PRLabelTemplateSet {
+			return fmt.Errorf("prLabel.templatePath is required")
+		}
+		if !c.PRLabelModelSet {
+			return fmt.Errorf("prLabel.model is required")
+		}
 	}
 	return nil
 }

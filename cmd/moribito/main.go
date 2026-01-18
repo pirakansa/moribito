@@ -27,9 +27,17 @@ func main() {
 	}
 }
 
+var version = "0.0.0"
+
 func run() error {
 	printToken := flag.Bool("print-installation-token", false, "print installation token and exit")
+	printVersion := flag.Bool("v", false, "print version and exit")
 	flag.Parse()
+
+	if *printVersion {
+		fmt.Fprintln(os.Stdout, version)
+		return nil
+	}
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -64,7 +72,10 @@ func run() error {
 		return err
 	}
 
-	reviewer := review.NewService(logger, clientFactory, reviewOpts...)
+	var reviewer review.Reviewer
+	if cfg.PROpenConfigured {
+		reviewer = review.NewService(logger, clientFactory, reviewOpts...)
+	}
 
 	// Create Issue service for AI-powered issue responses
 	issueService, err := createIssueService(cfg, logger, clientFactory, ocClient)

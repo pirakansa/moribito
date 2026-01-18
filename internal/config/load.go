@@ -69,18 +69,25 @@ func applyFileConfig(cfg *Config, fileCfg fileConfig) {
 	}
 	if fileCfg.PROpen.TemplatePath != "" {
 		cfg.PROpenTemplatePath = fileCfg.PROpen.TemplatePath
+		cfg.PROpenTemplateSet = true
 	}
 	if fileCfg.PROpen.Model != "" {
 		cfg.PROpenModel = fileCfg.PROpen.Model
+		cfg.PROpenModelSet = true
 	}
 	if fileCfg.PROpen.MaxDiffLength != nil {
 		cfg.PROpenMaxDiffLength = *fileCfg.PROpen.MaxDiffLength
 	}
+	if fileCfg.PROpen.TemplatePath != "" || fileCfg.PROpen.Model != "" || fileCfg.PROpen.MaxDiffLength != nil {
+		cfg.PROpenConfigured = true
+	}
 	if fileCfg.PRComment.TemplatePath != "" {
 		cfg.PRCommentTemplatePath = fileCfg.PRComment.TemplatePath
+		cfg.PRCommentTemplateSet = true
 	}
 	if fileCfg.PRComment.Model != "" {
 		cfg.PRCommentModel = fileCfg.PRComment.Model
+		cfg.PRCommentModelSet = true
 	}
 	if fileCfg.PRComment.MaxDiffLength != nil {
 		cfg.PRCommentMaxDiffLength = *fileCfg.PRComment.MaxDiffLength
@@ -88,13 +95,52 @@ func applyFileConfig(cfg *Config, fileCfg fileConfig) {
 	if fileCfg.PRComment.TriggerPrefix != "" {
 		cfg.PRCommentTriggerPrefix = fileCfg.PRComment.TriggerPrefix
 	}
+	if fileCfg.PRComment.TemplatePath != "" || fileCfg.PRComment.Model != "" || fileCfg.PRComment.MaxDiffLength != nil || fileCfg.PRComment.TriggerPrefix != "" {
+		cfg.PRCommentConfigured = true
+	}
 	if fileCfg.IssueComment.TemplatePath != "" {
 		cfg.IssueResponseTemplatePath = fileCfg.IssueComment.TemplatePath
+		cfg.IssueCommentTemplateSet = true
 	}
 	if fileCfg.IssueComment.ResponseModel != "" {
 		cfg.IssueResponseModel = fileCfg.IssueComment.ResponseModel
+		cfg.IssueCommentModelSet = true
 	}
 	if fileCfg.IssueComment.TriggerPrefix != "" {
 		cfg.IssueTriggerPrefix = fileCfg.IssueComment.TriggerPrefix
+	}
+	if fileCfg.IssueComment.TemplatePath != "" || fileCfg.IssueComment.ResponseModel != "" || fileCfg.IssueComment.TriggerPrefix != "" {
+		cfg.IssueCommentConfigured = true
+	}
+	if fileCfg.IssueLabel.Labels != nil {
+		cfg.IssueLabelTriggers = fileCfg.IssueLabel.Labels
+	}
+	if fileCfg.IssueLabel.TemplatePath != "" {
+		cfg.IssueLabelTemplatePath = fileCfg.IssueLabel.TemplatePath
+		cfg.IssueLabelTemplateSet = true
+	}
+	if fileCfg.IssueLabel.Model != "" {
+		cfg.IssueLabelModel = fileCfg.IssueLabel.Model
+		cfg.IssueLabelModelSet = true
+	}
+	if fileCfg.IssueLabel.Labels != nil || fileCfg.IssueLabel.TemplatePath != "" || fileCfg.IssueLabel.Model != "" {
+		cfg.IssueLabelConfigured = true
+	}
+	if fileCfg.PRLabel.Labels != nil {
+		cfg.PRLabelTriggers = fileCfg.PRLabel.Labels
+	}
+	if fileCfg.PRLabel.TemplatePath != "" {
+		cfg.PRLabelTemplatePath = fileCfg.PRLabel.TemplatePath
+		cfg.PRLabelTemplateSet = true
+	}
+	if fileCfg.PRLabel.Model != "" {
+		cfg.PRLabelModel = fileCfg.PRLabel.Model
+		cfg.PRLabelModelSet = true
+	}
+	if fileCfg.PRLabel.MaxDiffLength != nil {
+		cfg.PRLabelMaxDiffLength = *fileCfg.PRLabel.MaxDiffLength
+	}
+	if fileCfg.PRLabel.Labels != nil || fileCfg.PRLabel.TemplatePath != "" || fileCfg.PRLabel.Model != "" {
+		cfg.PRLabelConfigured = true
 	}
 }

@@ -52,6 +52,12 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.PROpenMaxDiffLength != defaultPROpenMaxDiffLen {
 		t.Fatalf("expected pr open max diff length %d, got %d", defaultPROpenMaxDiffLen, cfg.PROpenMaxDiffLength)
 	}
+	if !cfg.PROpenConfigured || !cfg.PROpenTemplateSet {
+		t.Fatalf("expected pr open to be configured with template set")
+	}
+	if cfg.PROpenModelSet {
+		t.Fatalf("expected pr open model to be unset")
+	}
 	if cfg.PRCommentTemplatePath != "/tmp/pr-comment.tmpl" {
 		t.Fatalf("expected pr comment template path %s, got %s", "/tmp/pr-comment.tmpl", cfg.PRCommentTemplatePath)
 	}
@@ -64,6 +70,12 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.PRCommentTriggerPrefix != "@review" {
 		t.Fatalf("expected pr comment trigger prefix %s, got %s", "@review", cfg.PRCommentTriggerPrefix)
 	}
+	if !cfg.PRCommentConfigured || !cfg.PRCommentTemplateSet {
+		t.Fatalf("expected pr comment to be configured with template set")
+	}
+	if cfg.PRCommentModelSet {
+		t.Fatalf("expected pr comment model to be unset")
+	}
 	if cfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
 		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", cfg.IssueResponseTemplatePath)
 	}
@@ -72,6 +84,12 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.IssueTriggerPrefix != defaultIssueTriggerPrefix {
 		t.Fatalf("expected default issue trigger prefix %s, got %s", defaultIssueTriggerPrefix, cfg.IssueTriggerPrefix)
+	}
+	if !cfg.IssueCommentConfigured || !cfg.IssueCommentTemplateSet {
+		t.Fatalf("expected issue comment to be configured with template set")
+	}
+	if cfg.IssueCommentModelSet {
+		t.Fatalf("expected issue comment model to be unset")
 	}
 }
 
@@ -106,6 +124,17 @@ func TestLoadOverrides(t *testing.T) {
 		"templatePath": "/tmp/issue.tmpl",
 		"responseModel": "custom/issue",
 		"triggerPrefix": "@issue"
+	},
+	"issueLabel": {
+		"templatePath": "/tmp/issue-label.tmpl",
+		"model": "custom/issue-label",
+		"labels": ["triage", "needs-info"]
+	},
+	"prLabel": {
+		"templatePath": "/tmp/pr-label.tmpl",
+		"model": "custom/pr-label",
+		"maxDiffLength": 456,
+		"labels": ["needs-review"]
 	}
 }`)
 	t.Setenv("MORIBITO_CONFIG_PATH", path)
@@ -156,6 +185,9 @@ func TestLoadOverrides(t *testing.T) {
 	if cfg.PROpenMaxDiffLength != 123 {
 		t.Fatalf("expected pr open max diff length 123, got %d", cfg.PROpenMaxDiffLength)
 	}
+	if !cfg.PROpenConfigured || !cfg.PROpenTemplateSet || !cfg.PROpenModelSet {
+		t.Fatalf("expected pr open to be configured with template/model set")
+	}
 	if cfg.PRCommentModel != "custom/comment" {
 		t.Fatalf("expected pr comment model custom/comment, got %s", cfg.PRCommentModel)
 	}
@@ -165,11 +197,44 @@ func TestLoadOverrides(t *testing.T) {
 	if cfg.PRCommentTriggerPrefix != "@bot" {
 		t.Fatalf("expected pr comment trigger prefix @bot, got %s", cfg.PRCommentTriggerPrefix)
 	}
+	if !cfg.PRCommentConfigured || !cfg.PRCommentTemplateSet || !cfg.PRCommentModelSet {
+		t.Fatalf("expected pr comment to be configured with template/model set")
+	}
 	if cfg.IssueResponseModel != "custom/issue" {
 		t.Fatalf("expected issue response model custom/issue, got %s", cfg.IssueResponseModel)
 	}
 	if cfg.IssueTriggerPrefix != "@issue" {
 		t.Fatalf("expected issue trigger prefix @issue, got %s", cfg.IssueTriggerPrefix)
+	}
+	if !cfg.IssueCommentConfigured || !cfg.IssueCommentTemplateSet || !cfg.IssueCommentModelSet {
+		t.Fatalf("expected issue comment to be configured with template/model set")
+	}
+	if cfg.IssueLabelTemplatePath != "/tmp/issue-label.tmpl" {
+		t.Fatalf("expected issue label template path /tmp/issue-label.tmpl, got %s", cfg.IssueLabelTemplatePath)
+	}
+	if cfg.IssueLabelModel != "custom/issue-label" {
+		t.Fatalf("expected issue label model custom/issue-label, got %s", cfg.IssueLabelModel)
+	}
+	if !cfg.IssueLabelConfigured || !cfg.IssueLabelTemplateSet || !cfg.IssueLabelModelSet {
+		t.Fatalf("expected issue label to be configured with template/model set")
+	}
+	if len(cfg.IssueLabelTriggers) != 2 || cfg.IssueLabelTriggers[0] != "triage" || cfg.IssueLabelTriggers[1] != "needs-info" {
+		t.Fatalf("expected issue label triggers [triage needs-info], got %v", cfg.IssueLabelTriggers)
+	}
+	if cfg.PRLabelTemplatePath != "/tmp/pr-label.tmpl" {
+		t.Fatalf("expected pr label template path /tmp/pr-label.tmpl, got %s", cfg.PRLabelTemplatePath)
+	}
+	if cfg.PRLabelModel != "custom/pr-label" {
+		t.Fatalf("expected pr label model custom/pr-label, got %s", cfg.PRLabelModel)
+	}
+	if cfg.PRLabelMaxDiffLength != 456 {
+		t.Fatalf("expected pr label max diff length 456, got %d", cfg.PRLabelMaxDiffLength)
+	}
+	if !cfg.PRLabelConfigured || !cfg.PRLabelTemplateSet || !cfg.PRLabelModelSet {
+		t.Fatalf("expected pr label to be configured with template/model set")
+	}
+	if len(cfg.PRLabelTriggers) != 1 || cfg.PRLabelTriggers[0] != "needs-review" {
+		t.Fatalf("expected pr label triggers [needs-review], got %v", cfg.PRLabelTriggers)
 	}
 }
 
@@ -196,13 +261,111 @@ func TestValidateForWebhook(t *testing.T) {
 	}
 
 	cfg = Config{
-		Addr:                      ":8080",
-		GitHubWebhookPath:         "/webhook",
-		PROpenTemplatePath:        "/tmp/pr.tmpl",
-		IssueResponseTemplatePath: "/tmp/issue.tmpl",
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
 	}
 	if err := cfg.ValidateForWebhook(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+
+	cfg = Config{
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		PROpenConfigured:  true,
+		PROpenTemplateSet: true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing prOpen.model when configured")
+	}
+
+	cfg = Config{
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		PROpenConfigured:  true,
+		PROpenModelSet:    true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing prOpen.templatePath when configured")
+	}
+
+	cfg = Config{
+		Addr:                    ":8080",
+		GitHubWebhookPath:       "/webhook",
+		IssueCommentConfigured:  true,
+		IssueCommentTemplateSet: true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing issueComment.responseModel when configured")
+	}
+
+	cfg = Config{
+		Addr:                   ":8080",
+		GitHubWebhookPath:      "/webhook",
+		IssueCommentConfigured: true,
+		IssueCommentModelSet:   true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing issueComment.templatePath when configured")
+	}
+
+	cfg = Config{
+		Addr:                 ":8080",
+		GitHubWebhookPath:    "/webhook",
+		PRCommentConfigured:  true,
+		PRCommentTemplateSet: true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing prComment.model when configured")
+	}
+
+	cfg = Config{
+		Addr:                ":8080",
+		GitHubWebhookPath:   "/webhook",
+		PRCommentConfigured: true,
+		PRCommentModelSet:   true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing prComment.templatePath when configured")
+	}
+
+	cfg = Config{
+		Addr:                  ":8080",
+		GitHubWebhookPath:     "/webhook",
+		IssueLabelConfigured:  true,
+		IssueLabelTemplateSet: true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing issueLabel.model when configured")
+	}
+
+	cfg = Config{
+		Addr:                 ":8080",
+		GitHubWebhookPath:    "/webhook",
+		IssueLabelConfigured: true,
+		IssueLabelModelSet:   true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing issueLabel.templatePath when configured")
+	}
+
+	cfg = Config{
+		Addr:               ":8080",
+		GitHubWebhookPath:  "/webhook",
+		PRLabelConfigured:  true,
+		PRLabelTemplateSet: true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing prLabel.model when configured")
+	}
+
+	cfg = Config{
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		PRLabelConfigured: true,
+		PRLabelModelSet:   true,
+	}
+	if err := cfg.ValidateForWebhook(); err == nil {
+		t.Fatalf("expected error for missing prLabel.templatePath when configured")
 	}
 }
 

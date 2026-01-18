@@ -129,3 +129,59 @@ func TestOnIssueCommentWithResponseModel(t *testing.T) {
 		t.Fatalf("expected 1 comment, got %d", len(mockClient.comments))
 	}
 }
+
+func TestOnIssueLabeled(t *testing.T) {
+	logger := log.New(&bytes.Buffer{}, "test: ", 0)
+	mockClient := &mockGitHubClient{}
+	factory := &mockClientFactory{client: mockClient}
+	mockOC := &mockOpenCodeClient{
+		healthy:   true,
+		sessionID: "issue-session-2",
+		response:  "AI response",
+	}
+	builder := prompt.NewBuilder(prompt.WithTemplate(prompt.Template{
+		Name:    "issue",
+		Content: "Title={{.Title}}\nComment={{.Comment}}",
+	}))
+
+	svc := NewService(
+		logger,
+		factory,
+		WithOpenCodeClient(mockOC),
+		WithPromptBuilder(builder),
+		WithLabelTriggers([]string{"needs-triage"}),
+		WithLabelResponseModel("issue-label-model"),
+	)
+
+	event := LabelEvent{
+		InstallationID: 42,
+		Owner:          "example",
+		Repo:           "repo",
+		IssueNumber:    1,
+		IssueTitle:     "Issue title",
+		IssueBody:      "Issue body",
+		IssueAuthor:    "bob",
+		IssueURL:       "https://github.com/example/repo/issues/1",
+		LabelName:      "needs-triage",
+		Labeler:        "alice",
+	}
+
+	if err := svc.OnIssueLabeled(context.Background(), event); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if mockOC.lastRequest == nil {
+		t.Fatal("expected SendMessage request to be captured")
+	}
+	if mockOC.lastRequest.Model == nil {
+		t.Fatal("expected label model to be set")
+	}
+	if mockOC.lastRequest.Model.ModelID != "issue-label-model" {
+		t.Fatalf("expected model issue-label-model, got %q", mockOC.lastRequest.Model.ModelID)
+	}
+	if len(mockClient.reactions) != 2 {
+		t.Fatalf("expected 2 reactions, got %d", len(mockClient.reactions))
+	}
+	if len(mockClient.comments) != 1 {
+		t.Fatalf("expected 1 comment, got %d", len(mockClient.comments))
+	}
+}
