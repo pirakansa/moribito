@@ -48,7 +48,7 @@ func (c Config) ValidateForWebhook() error {
 			return fmt.Errorf("issueComment.templatePath is required")
 		}
 		if !c.IssueCommentModelSet {
-			return fmt.Errorf("issueComment.responseModel is required")
+			return fmt.Errorf("issueComment.model is required")
 		}
 	}
 	if c.IssueLabelConfigured {

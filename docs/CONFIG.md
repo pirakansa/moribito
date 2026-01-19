@@ -43,7 +43,7 @@ Set the JSON config path via:
   },
   "issueComment": {
     "templatePath": "docs/templates/issue-response.md.tmpl",
-    "responseModel": "opencode/big-pickle",
+    "model": "opencode/big-pickle",
     "triggerPrefix": "@moribito"
   },
   "issueLabel": {
@@ -60,7 +60,7 @@ Set the JSON config path via:
 }
 ```
 
-Defaults apply when fields are omitted. Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely. `prOpen` / `prComment` / `issueComment` / `issueLabel` / `prLabel` are optional, but when present they require `templatePath` and a model (`issueComment` uses `responseModel`).
+Defaults apply when fields are omitted. Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely. `prOpen` / `prComment` / `issueComment` / `issueLabel` / `prLabel` are optional, but when present they require `templatePath` and a model.
 
 ## Template Variables
 

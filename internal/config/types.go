@@ -44,7 +44,7 @@ type Config struct {
 	IssueTriggerPrefix        string // Comment prefix to trigger AI response (default: @moribito)
 	IssueCommentConfigured    bool   // True if issueComment section is configured
 	IssueCommentTemplateSet   bool   // True if issueComment.templatePath is set explicitly
-	IssueCommentModelSet      bool   // True if issueComment.responseModel is set explicitly
+	IssueCommentModelSet      bool   // True if issueComment.model is set explicitly
 
 	// Issue label response configuration
 	IssueLabelTemplatePath string   // Issue label prompt template file path (optional)

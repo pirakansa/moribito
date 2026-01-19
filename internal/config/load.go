@@ -102,14 +102,14 @@ func applyFileConfig(cfg *Config, fileCfg fileConfig) {
 		cfg.IssueResponseTemplatePath = fileCfg.IssueComment.TemplatePath
 		cfg.IssueCommentTemplateSet = true
 	}
-	if fileCfg.IssueComment.ResponseModel != "" {
-		cfg.IssueResponseModel = fileCfg.IssueComment.ResponseModel
+	if fileCfg.IssueComment.Model != "" {
+		cfg.IssueResponseModel = fileCfg.IssueComment.Model
 		cfg.IssueCommentModelSet = true
 	}
 	if fileCfg.IssueComment.TriggerPrefix != "" {
 		cfg.IssueTriggerPrefix = fileCfg.IssueComment.TriggerPrefix
 	}
-	if fileCfg.IssueComment.TemplatePath != "" || fileCfg.IssueComment.ResponseModel != "" || fileCfg.IssueComment.TriggerPrefix != "" {
+	if fileCfg.IssueComment.TemplatePath != "" || fileCfg.IssueComment.Model != "" || fileCfg.IssueComment.TriggerPrefix != "" {
 		cfg.IssueCommentConfigured = true
 	}
 	if fileCfg.IssueLabel.Labels != nil {
