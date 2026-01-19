@@ -34,7 +34,7 @@ type fileConfig struct {
 	} `json:"prComment"`
 	IssueComment struct {
 		TemplatePath  string `json:"templatePath"`
-		ResponseModel string `json:"responseModel"`
+		Model         string `json:"model"`
 		TriggerPrefix string `json:"triggerPrefix"`
 	} `json:"issueComment"`
 	IssueLabel struct {

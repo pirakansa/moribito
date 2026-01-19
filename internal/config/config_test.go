@@ -122,7 +122,7 @@ func TestLoadOverrides(t *testing.T) {
 	},
 	"issueComment": {
 		"templatePath": "/tmp/issue.tmpl",
-		"responseModel": "custom/issue",
+		"model": "custom/issue",
 		"triggerPrefix": "@issue"
 	},
 	"issueLabel": {
@@ -295,7 +295,7 @@ func TestValidateForWebhook(t *testing.T) {
 		IssueCommentTemplateSet: true,
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
-		t.Fatalf("expected error for missing issueComment.responseModel when configured")
+		t.Fatalf("expected error for missing issueComment.model when configured")
 	}
 
 	cfg = Config{
