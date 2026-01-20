@@ -52,6 +52,9 @@ func TestLoadDefaults(t *testing.T) {
 	if repoCfg.OpenCodeLongTimeout != defaultOpenCodeLongTimeout {
 		t.Fatalf("expected default opencode long timeout %s, got %s", defaultOpenCodeLongTimeout, repoCfg.OpenCodeLongTimeout)
 	}
+	if repoCfg.QueueWorkersLimit != 0 {
+		t.Fatalf("expected default repo queue workers limit 0, got %d", repoCfg.QueueWorkersLimit)
+	}
 	if repoCfg.PROpenTemplatePath != "/tmp/pr-open.tmpl" {
 		t.Fatalf("expected pr open template path %s, got %s", "/tmp/pr-open.tmpl", repoCfg.PROpenTemplatePath)
 	}
@@ -124,6 +127,7 @@ func TestLoadOverrides(t *testing.T) {
 	"repositories": {
 		"acme/widgets": {
 			"opencode": { "host": "opencode.local", "port": 1234, "longTimeoutSeconds": 120 },
+			"queue": { "workers": 2 },
 			"prOpen": { "templatePath": "/tmp/pr-open.tmpl", "model": "custom/open", "maxDiffLength": 123 },
 			"prComment": {
 				"templatePath": "/tmp/pr-comment.tmpl",
@@ -196,6 +200,9 @@ func TestLoadOverrides(t *testing.T) {
 	}
 	if repoCfg.OpenCodeLongTimeout != 120*time.Second {
 		t.Fatalf("expected opencode long timeout 120s, got %s", repoCfg.OpenCodeLongTimeout)
+	}
+	if repoCfg.QueueWorkersLimit != 2 {
+		t.Fatalf("expected repo queue workers limit 2, got %d", repoCfg.QueueWorkersLimit)
 	}
 	if repoCfg.PROpenModel != "custom/open" {
 		t.Fatalf("expected pr open model custom/open, got %s", repoCfg.PROpenModel)

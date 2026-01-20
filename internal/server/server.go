@@ -32,6 +32,7 @@ type Server struct {
 
 // New creates a Server with the given configuration and dependencies.
 func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, resolver webhook.RepoServiceResolver, ocClients []*opencode.Client, queueWorkers, queueBuffer int) *Server {
+	submitter = webhook.NewRepoLimitedSubmitter(submitter, repoLimits(cfg))
 	return &Server{
 		cfg:             cfg,
 		logger:          logger,
@@ -40,6 +41,16 @@ func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, res
 		queueWorkers:    queueWorkers,
 		queueBuffer:     queueBuffer,
 	}
+}
+
+func repoLimits(cfg config.Config) map[string]int {
+	limits := make(map[string]int)
+	for repo, repoCfg := range cfg.Repositories {
+		if repoCfg.QueueWorkersLimit > 0 {
+			limits[repo] = repoCfg.QueueWorkersLimit
+		}
+	}
+	return limits
 }
 
 // Handler returns an http.Handler with all routes configured.

@@ -50,7 +50,8 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter, resolver RepoSe
 				}
 
 				return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-					Name: "pull_request_comment_response",
+					Name:         "pull_request_comment_response",
+					RepoFullName: payload.Repository.FullName,
 					Run: func(jobCtx context.Context) error {
 						logger.Printf("job=pull_request_comment_response repo=%s number=%d",
 							payload.Repository.FullName, payload.Issue.Number)
@@ -75,7 +76,8 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter, resolver RepoSe
 				}
 
 				return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-					Name: "issue_comment_response",
+					Name:         "issue_comment_response",
+					RepoFullName: payload.Repository.FullName,
 					Run: func(jobCtx context.Context) error {
 						logger.Printf("job=issue_comment_response repo=%s issue=%d",
 							payload.Repository.FullName, payload.Issue.Number)
@@ -86,7 +88,8 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter, resolver RepoSe
 		}
 
 		return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-			Name: "issue_comment",
+			Name:         "issue_comment",
+			RepoFullName: payload.Repository.FullName,
 			Run: func(_ context.Context) error {
 				logger.Printf("job=issue_comment action=%s repo=%s issue=%d comment_id=%d",
 					payload.Action, payload.Repository.FullName,

@@ -29,7 +29,7 @@ func enqueueJob(ctx context.Context, logger *log.Logger, submitter Submitter, jo
 		return nil
 	}
 	if err := submitter.Enqueue(ctx, job); err != nil {
-		logger.Printf("job enqueue failed name=%s err=%v", job.Name, err)
+		logger.Printf("job enqueue failed name=%s repo=%s err=%v", job.Name, job.RepoFullName, err)
 		return nil // Log but don't fail the webhook response
 	}
 	return nil

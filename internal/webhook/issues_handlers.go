@@ -49,7 +49,8 @@ func HandleIssues(logger *log.Logger, submitter Submitter, resolver RepoServiceR
 			}
 
 			return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-				Name: "issue_labeled_response",
+				Name:         "issue_labeled_response",
+				RepoFullName: payload.Repository.FullName,
 				Run: func(jobCtx context.Context) error {
 					logger.Printf("job=issue_labeled_response repo=%s issue=%d label=%s",
 						payload.Repository.FullName, payload.Issue.Number, payload.Label.Name)
@@ -59,7 +60,8 @@ func HandleIssues(logger *log.Logger, submitter Submitter, resolver RepoServiceR
 		}
 
 		return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-			Name: "issues",
+			Name:         "issues",
+			RepoFullName: payload.Repository.FullName,
 			Run: func(_ context.Context) error {
 				logger.Printf("job=issues action=%s repo=%s issue=%d label=%s",
 					payload.Action, payload.Repository.FullName,

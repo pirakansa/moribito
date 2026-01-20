@@ -32,6 +32,9 @@ Set the JSON config path via:
         "port": 4096,
         "longTimeoutSeconds": 600
       },
+      "queue": {
+        "workers": 2
+      },
       "prOpen": {
         "templatePath": "docs/templates/pr-response-open.md.tmpl",
         "model": "opencode/big-pickle",
@@ -64,7 +67,7 @@ Set the JSON config path via:
 }
 ```
 
-Repository-specific settings live under `repositories`. If a webhook event arrives for a repository not listed, it is skipped without logging. Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely. `prOpen` / `prComment` / `issueComment` / `issueLabel` / `prLabel` are optional, but when present they require `templatePath` and a model.
+Repository-specific settings live under `repositories`. If a webhook event arrives for a repository not listed, it is skipped without logging. `repositories.<repo>.queue.workers` sets the per-repository concurrency limit (0 or omitted disables the limit). Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely. `prOpen` / `prComment` / `issueComment` / `issueLabel` / `prLabel` are optional, but when present they require `templatePath` and a model.
 
 ## Template Variables
 

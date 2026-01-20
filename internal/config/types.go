@@ -27,6 +27,9 @@ type RepositoryConfig struct {
 	OpenCodePort        int           // OpenCode server port (default: 4096)
 	OpenCodeLongTimeout time.Duration // Timeout for long-running OpenCode requests
 
+	// Queue configuration
+	QueueWorkersLimit int // Max concurrent jobs for this repository (0 disables limit)
+
 	// PR open response configuration
 	PROpenTemplatePath  string // PR open prompt template file path
 	PROpenModel         string // OpenCode model for PR open response (optional)

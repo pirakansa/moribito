@@ -27,7 +27,8 @@ func HandleCheckRun(logger *log.Logger, submitter Submitter, resolver RepoServic
 			payload.CheckRun.ID, payload.CheckRun.Name)
 
 		return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-			Name: "check_run",
+			Name:         "check_run",
+			RepoFullName: payload.Repository.FullName,
 			Run: func(_ context.Context) error {
 				logger.Printf("job=check_run action=%s repo=%s check_run=%d name=%s",
 					payload.Action, payload.Repository.FullName,

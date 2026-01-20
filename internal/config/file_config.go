@@ -25,6 +25,9 @@ type repositoryFileConfig struct {
 		Port               *int   `json:"port"`
 		LongTimeoutSeconds *int   `json:"longTimeoutSeconds"`
 	} `json:"opencode"`
+	Queue struct {
+		Workers *int `json:"workers"`
+	} `json:"queue"`
 	PROpen struct {
 		TemplatePath  string `json:"templatePath"`
 		Model         string `json:"model"`

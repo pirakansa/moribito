@@ -37,7 +37,8 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter, resolver RepoSer
 				InstallationID: payload.Installation.ID,
 			}
 			return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-				Name: "pull_request_opened",
+				Name:         "pull_request_opened",
+				RepoFullName: payload.Repository.FullName,
 				Run: func(jobCtx context.Context) error {
 					logger.Printf("job=pull_request_opened repo=%s number=%d",
 						payload.Repository.FullName, payload.PullRequest.Number)
@@ -62,7 +63,8 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter, resolver RepoSer
 			}
 
 			return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-				Name: "pull_request_labeled_response",
+				Name:         "pull_request_labeled_response",
+				RepoFullName: payload.Repository.FullName,
 				Run: func(jobCtx context.Context) error {
 					logger.Printf("job=pull_request_labeled_response repo=%s number=%d label=%s",
 						payload.Repository.FullName, payload.PullRequest.Number, payload.Label.Name)
@@ -72,7 +74,8 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter, resolver RepoSer
 		}
 
 		return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
-			Name: "pull_request",
+			Name:         "pull_request",
+			RepoFullName: payload.Repository.FullName,
 			Run: func(_ context.Context) error {
 				logger.Printf("job=pull_request action=%s repo=%s number=%d",
 					payload.Action, payload.Repository.FullName, payload.PullRequest.Number)

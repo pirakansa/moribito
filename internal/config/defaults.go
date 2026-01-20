@@ -34,6 +34,7 @@ func defaultRepositoryConfig() RepositoryConfig {
 		OpenCodeHost:           defaultOpenCodeHost,
 		OpenCodePort:           defaultOpenCodePort,
 		OpenCodeLongTimeout:    defaultOpenCodeLongTimeout,
+		QueueWorkersLimit:      0,
 		PROpenModel:            defaultOpenCodeModel,
 		PROpenMaxDiffLength:    defaultPROpenMaxDiffLen,
 		PRCommentModel:         defaultOpenCodeModel,

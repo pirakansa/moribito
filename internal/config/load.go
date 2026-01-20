@@ -79,6 +79,9 @@ func applyRepositoryFileConfig(cfg *RepositoryConfig, fileCfg repositoryFileConf
 	if fileCfg.OpenCode.LongTimeoutSeconds != nil {
 		cfg.OpenCodeLongTimeout = time.Duration(*fileCfg.OpenCode.LongTimeoutSeconds) * time.Second
 	}
+	if fileCfg.Queue.Workers != nil {
+		cfg.QueueWorkersLimit = *fileCfg.Queue.Workers
+	}
 	if fileCfg.PROpen.TemplatePath != "" {
 		cfg.PROpenTemplatePath = fileCfg.PROpen.TemplatePath
 		cfg.PROpenTemplateSet = true
