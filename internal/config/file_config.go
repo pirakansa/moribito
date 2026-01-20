@@ -12,6 +12,14 @@ type fileConfig struct {
 		WebhookSecret  string `json:"webhookSecret"`
 		APIBaseURL     string `json:"apiBaseURL"`
 	} `json:"github"`
+	Queue struct {
+		Workers *int `json:"workers"`
+		Buffer  *int `json:"buffer"`
+	} `json:"queue"`
+	Repositories map[string]repositoryFileConfig `json:"repositories"`
+}
+
+type repositoryFileConfig struct {
 	OpenCode struct {
 		Host               string `json:"host"`
 		Port               *int   `json:"port"`
@@ -19,7 +27,6 @@ type fileConfig struct {
 	} `json:"opencode"`
 	Queue struct {
 		Workers *int `json:"workers"`
-		Buffer  *int `json:"buffer"`
 	} `json:"queue"`
 	PROpen struct {
 		TemplatePath  string `json:"templatePath"`

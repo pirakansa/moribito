@@ -9,14 +9,14 @@ import (
 
 func TestRouterHandleKnownEvent(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	router := NewRouter(logger, nil, nil, nil, nil)
+	router := NewRouter(logger, nil, nil)
 	called := false
-	router.Register("ping", func(_ context.Context, _, _ string, _ []byte) error {
+	router.Register("ping", func(_ context.Context, _, _ string, _ []byte) (HandleResult, error) {
 		called = true
-		return nil
+		return HandleResult{}, nil
 	})
 
-	if err := router.Handle(context.Background(), "ping", "d1", []byte(`{}`)); err != nil {
+	if _, err := router.Handle(context.Background(), "ping", "d1", []byte(`{}`)); err != nil {
 		t.Fatalf("handle: %v", err)
 	}
 	if !called {
@@ -26,8 +26,8 @@ func TestRouterHandleKnownEvent(t *testing.T) {
 
 func TestRouterHandleUnknownEvent(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	router := NewRouter(logger, nil, nil, nil, nil)
-	if err := router.Handle(context.Background(), "unknown", "d1", []byte(`{}`)); err != nil {
+	router := NewRouter(logger, nil, nil)
+	if _, err := router.Handle(context.Background(), "unknown", "d1", []byte(`{}`)); err != nil {
 		t.Fatalf("handle unknown: %v", err)
 	}
 }

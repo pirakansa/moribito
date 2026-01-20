@@ -20,14 +20,21 @@ const (
 
 func defaultConfig() Config {
 	return Config{
-		Addr:                   defaultAddr,
-		GitHubAPIBaseURL:       defaultGitHubAPIBaseURL,
-		GitHubWebhookPath:      defaultWebhookPath,
+		Addr:              defaultAddr,
+		GitHubAPIBaseURL:  defaultGitHubAPIBaseURL,
+		GitHubWebhookPath: defaultWebhookPath,
+		QueueWorkers:      defaultQueueWorkers,
+		QueueBuffer:       defaultQueueBuffer,
+		Repositories:      make(map[string]RepositoryConfig),
+	}
+}
+
+func defaultRepositoryConfig() RepositoryConfig {
+	return RepositoryConfig{
 		OpenCodeHost:           defaultOpenCodeHost,
 		OpenCodePort:           defaultOpenCodePort,
 		OpenCodeLongTimeout:    defaultOpenCodeLongTimeout,
-		QueueWorkers:           defaultQueueWorkers,
-		QueueBuffer:            defaultQueueBuffer,
+		QueueWorkersLimit:      0,
 		PROpenModel:            defaultOpenCodeModel,
 		PROpenMaxDiffLength:    defaultPROpenMaxDiffLen,
 		PRCommentModel:         defaultOpenCodeModel,

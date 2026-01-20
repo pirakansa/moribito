@@ -15,11 +15,16 @@ import (
 // Actions include: created, edited, deleted.
 // When issueService is provided and action is "created", the handler
 // processes the comment for AI response.
-func HandleIssueComment(logger *log.Logger, submitter Submitter, issueService *issue.Service, prCommenter review.PRCommenter) Handler {
-	return func(ctx context.Context, event, delivery string, body []byte) error {
+func HandleIssueComment(logger *log.Logger, submitter Submitter, resolver RepoServiceResolver) Handler {
+	return func(ctx context.Context, event, delivery string, body []byte) (HandleResult, error) {
 		payload, err := decodeJSON[issueCommentPayload](body)
 		if err != nil {
-			return fmt.Errorf("decode issue_comment payload: %w", err)
+			return HandleResult{}, fmt.Errorf("decode issue_comment payload: %w", err)
+		}
+
+		_, prCommenter, issueService, ok := resolveRepoServices(resolver, payload.Repository.FullName)
+		if !ok {
+			return HandleResult{Skipped: true}, nil
 		}
 
 		logger.Printf("event=%s delivery=%s action=%s repo=%s issue=%d comment_id=%d",
@@ -30,7 +35,7 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter, issueService *i
 		if payload.Action == "created" {
 			owner, repo, perr := githubapp.ParseRepoFullName(payload.Repository.FullName)
 			if perr != nil {
-				return fmt.Errorf("parse repo name: %w", perr)
+				return HandleResult{}, fmt.Errorf("parse repo name: %w", perr)
 			}
 
 			if payload.Issue.PullRequest != nil && prCommenter != nil {
@@ -44,8 +49,9 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter, issueService *i
 					CommentAuthor:  payload.Comment.User.Login,
 				}
 
-				return enqueueJob(ctx, logger, submitter, queue.Job{
-					Name: "pull_request_comment_response",
+				return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
+					Name:         "pull_request_comment_response",
+					RepoFullName: payload.Repository.FullName,
 					Run: func(jobCtx context.Context) error {
 						logger.Printf("job=pull_request_comment_response repo=%s number=%d",
 							payload.Repository.FullName, payload.Issue.Number)
@@ -69,8 +75,9 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter, issueService *i
 					Repo:           repo,
 				}
 
-				return enqueueJob(ctx, logger, submitter, queue.Job{
-					Name: "issue_comment_response",
+				return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
+					Name:         "issue_comment_response",
+					RepoFullName: payload.Repository.FullName,
 					Run: func(jobCtx context.Context) error {
 						logger.Printf("job=issue_comment_response repo=%s issue=%d",
 							payload.Repository.FullName, payload.Issue.Number)
@@ -80,8 +87,9 @@ func HandleIssueComment(logger *log.Logger, submitter Submitter, issueService *i
 			}
 		}
 
-		return enqueueJob(ctx, logger, submitter, queue.Job{
-			Name: "issue_comment",
+		return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
+			Name:         "issue_comment",
+			RepoFullName: payload.Repository.FullName,
 			Run: func(_ context.Context) error {
 				logger.Printf("job=issue_comment action=%s repo=%s issue=%d comment_id=%d",
 					payload.Action, payload.Repository.FullName,

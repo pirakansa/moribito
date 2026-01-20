@@ -16,7 +16,15 @@ import (
 //   - event: the event type (e.g., "pull_request", "issue_comment")
 //   - delivery: unique delivery ID from GitHub
 //   - body: raw JSON payload
-type Handler func(ctx context.Context, event, delivery string, body []byte) error
+type Handler func(ctx context.Context, event, delivery string, body []byte) (HandleResult, error)
+
+// HandleResult describes the outcome of a webhook handler.
+type HandleResult struct {
+	Skipped bool
+}
+
+// RepoServiceResolver returns repo-specific services.
+type RepoServiceResolver func(repoFullName string) (review.Reviewer, review.PRCommenter, *issue.Service, bool)
 
 // Router dispatches GitHub webhook events to their registered handlers.
 // It provides a simple way to register handlers for specific event types
@@ -34,7 +42,7 @@ type Router struct {
 //   - issues: issues opened, labeled, etc.
 //   - issue_comment: comments on issues and PRs
 //   - check_run: CI check status updates
-func NewRouter(logger *log.Logger, submitter Submitter, reviewer review.Reviewer, issueService *issue.Service, prCommenter review.PRCommenter) *Router {
+func NewRouter(logger *log.Logger, submitter Submitter, resolver RepoServiceResolver) *Router {
 	r := &Router{
 		logger:   logger,
 		handlers: make(map[string]Handler),
@@ -43,10 +51,10 @@ func NewRouter(logger *log.Logger, submitter Submitter, reviewer review.Reviewer
 	// Register default handlers for common GitHub App events
 	r.Register("installation", HandleInstallation(logger, submitter))
 	r.Register("installation_repositories", HandleInstallationRepositories(logger, submitter))
-	r.Register("pull_request", HandlePullRequest(logger, submitter, reviewer, prCommenter))
-	r.Register("issues", HandleIssues(logger, submitter, issueService))
-	r.Register("issue_comment", HandleIssueComment(logger, submitter, issueService, prCommenter))
-	r.Register("check_run", HandleCheckRun(logger, submitter))
+	r.Register("pull_request", HandlePullRequest(logger, submitter, resolver))
+	r.Register("issues", HandleIssues(logger, submitter, resolver))
+	r.Register("issue_comment", HandleIssueComment(logger, submitter, resolver))
+	r.Register("check_run", HandleCheckRun(logger, submitter, resolver))
 
 	return r
 }
@@ -60,20 +68,21 @@ func (r *Router) Register(event string, handler Handler) {
 // Handle dispatches an event to its registered handler.
 // Returns nil for unknown events (logged but not treated as errors).
 // Returns an error if the handler fails.
-func (r *Router) Handle(ctx context.Context, event, delivery string, body []byte) error {
+func (r *Router) Handle(ctx context.Context, event, delivery string, body []byte) (HandleResult, error) {
 	event = strings.TrimSpace(event)
 	if event == "" {
-		return fmt.Errorf("missing event name")
+		return HandleResult{Skipped: true}, fmt.Errorf("missing event name")
 	}
 
 	handler, ok := r.handlers[event]
 	if !ok {
 		r.logger.Printf("webhook unhandled event=%s delivery=%s", event, delivery)
-		return nil
+		return HandleResult{Skipped: true}, nil
 	}
 
-	if err := handler(ctx, event, delivery, body); err != nil {
-		return fmt.Errorf("handle event %s: %w", event, err)
+	result, err := handler(ctx, event, delivery, body)
+	if err != nil {
+		return HandleResult{Skipped: result.Skipped}, fmt.Errorf("handle event %s: %w", event, err)
 	}
-	return nil
+	return result, nil
 }

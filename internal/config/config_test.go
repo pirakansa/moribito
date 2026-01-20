@@ -9,9 +9,13 @@ import (
 
 func TestLoadDefaults(t *testing.T) {
 	path := writeConfigFile(t, `{
-	"prOpen": { "templatePath": "/tmp/pr-open.tmpl" },
-	"prComment": { "templatePath": "/tmp/pr-comment.tmpl", "triggerPrefix": "@review" },
-	"issueComment": { "templatePath": "/tmp/issue.tmpl" }
+	"repositories": {
+		"acme/widgets": {
+			"prOpen": { "templatePath": "/tmp/pr-open.tmpl" },
+			"prComment": { "templatePath": "/tmp/pr-comment.tmpl", "triggerPrefix": "@review" },
+			"issueComment": { "templatePath": "/tmp/issue.tmpl" }
+		}
+	}
 }`)
 	t.Setenv("MORIBITO_CONFIG_PATH", path)
 
@@ -28,73 +32,81 @@ func TestLoadDefaults(t *testing.T) {
 	if cfg.GitHubWebhookPath != defaultWebhookPath {
 		t.Fatalf("expected default webhook path %s, got %s", defaultWebhookPath, cfg.GitHubWebhookPath)
 	}
-	if cfg.OpenCodeHost != defaultOpenCodeHost {
-		t.Fatalf("expected default opencode host %s, got %s", defaultOpenCodeHost, cfg.OpenCodeHost)
-	}
-	if cfg.OpenCodePort != defaultOpenCodePort {
-		t.Fatalf("expected default opencode port %d, got %d", defaultOpenCodePort, cfg.OpenCodePort)
-	}
-	if cfg.OpenCodeLongTimeout != defaultOpenCodeLongTimeout {
-		t.Fatalf("expected default opencode long timeout %s, got %s", defaultOpenCodeLongTimeout, cfg.OpenCodeLongTimeout)
-	}
 	if cfg.QueueWorkers != defaultQueueWorkers {
 		t.Fatalf("expected default queue workers %d, got %d", defaultQueueWorkers, cfg.QueueWorkers)
 	}
 	if cfg.QueueBuffer != defaultQueueBuffer {
 		t.Fatalf("expected default queue buffer %d, got %d", defaultQueueBuffer, cfg.QueueBuffer)
 	}
-	if cfg.PROpenTemplatePath != "/tmp/pr-open.tmpl" {
-		t.Fatalf("expected pr open template path %s, got %s", "/tmp/pr-open.tmpl", cfg.PROpenTemplatePath)
+
+	repoCfg, ok := cfg.Repositories["acme/widgets"]
+	if !ok {
+		t.Fatalf("expected repository config for acme/widgets")
 	}
-	if cfg.PROpenModel != defaultOpenCodeModel {
-		t.Fatalf("expected pr open model %s, got %s", defaultOpenCodeModel, cfg.PROpenModel)
+	if repoCfg.OpenCodeHost != defaultOpenCodeHost {
+		t.Fatalf("expected default opencode host %s, got %s", defaultOpenCodeHost, repoCfg.OpenCodeHost)
 	}
-	if cfg.PROpenMaxDiffLength != defaultPROpenMaxDiffLen {
-		t.Fatalf("expected pr open max diff length %d, got %d", defaultPROpenMaxDiffLen, cfg.PROpenMaxDiffLength)
+	if repoCfg.OpenCodePort != defaultOpenCodePort {
+		t.Fatalf("expected default opencode port %d, got %d", defaultOpenCodePort, repoCfg.OpenCodePort)
 	}
-	if !cfg.PROpenConfigured || !cfg.PROpenTemplateSet {
+	if repoCfg.OpenCodeLongTimeout != defaultOpenCodeLongTimeout {
+		t.Fatalf("expected default opencode long timeout %s, got %s", defaultOpenCodeLongTimeout, repoCfg.OpenCodeLongTimeout)
+	}
+	if repoCfg.QueueWorkersLimit != 0 {
+		t.Fatalf("expected default repo queue workers limit 0, got %d", repoCfg.QueueWorkersLimit)
+	}
+	if repoCfg.PROpenTemplatePath != "/tmp/pr-open.tmpl" {
+		t.Fatalf("expected pr open template path %s, got %s", "/tmp/pr-open.tmpl", repoCfg.PROpenTemplatePath)
+	}
+	if repoCfg.PROpenModel != defaultOpenCodeModel {
+		t.Fatalf("expected pr open model %s, got %s", defaultOpenCodeModel, repoCfg.PROpenModel)
+	}
+	if repoCfg.PROpenMaxDiffLength != defaultPROpenMaxDiffLen {
+		t.Fatalf("expected pr open max diff length %d, got %d", defaultPROpenMaxDiffLen, repoCfg.PROpenMaxDiffLength)
+	}
+	if !repoCfg.PROpenConfigured || !repoCfg.PROpenTemplateSet {
 		t.Fatalf("expected pr open to be configured with template set")
 	}
-	if cfg.PROpenModelSet {
+	if repoCfg.PROpenModelSet {
 		t.Fatalf("expected pr open model to be unset")
 	}
-	if cfg.PRCommentTemplatePath != "/tmp/pr-comment.tmpl" {
-		t.Fatalf("expected pr comment template path %s, got %s", "/tmp/pr-comment.tmpl", cfg.PRCommentTemplatePath)
+	if repoCfg.PRCommentTemplatePath != "/tmp/pr-comment.tmpl" {
+		t.Fatalf("expected pr comment template path %s, got %s", "/tmp/pr-comment.tmpl", repoCfg.PRCommentTemplatePath)
 	}
-	if cfg.PRCommentModel != defaultOpenCodeModel {
-		t.Fatalf("expected pr comment model %s, got %s", defaultOpenCodeModel, cfg.PRCommentModel)
+	if repoCfg.PRCommentModel != defaultOpenCodeModel {
+		t.Fatalf("expected pr comment model %s, got %s", defaultOpenCodeModel, repoCfg.PRCommentModel)
 	}
-	if cfg.PRCommentMaxDiffLength != defaultPRCommentMaxDiffLen {
-		t.Fatalf("expected pr comment max diff length %d, got %d", defaultPRCommentMaxDiffLen, cfg.PRCommentMaxDiffLength)
+	if repoCfg.PRCommentMaxDiffLength != defaultPRCommentMaxDiffLen {
+		t.Fatalf("expected pr comment max diff length %d, got %d", defaultPRCommentMaxDiffLen, repoCfg.PRCommentMaxDiffLength)
 	}
-	if cfg.PRCommentTriggerPrefix != "@review" {
-		t.Fatalf("expected pr comment trigger prefix %s, got %s", "@review", cfg.PRCommentTriggerPrefix)
+	if repoCfg.PRCommentTriggerPrefix != "@review" {
+		t.Fatalf("expected pr comment trigger prefix %s, got %s", "@review", repoCfg.PRCommentTriggerPrefix)
 	}
-	if !cfg.PRCommentConfigured || !cfg.PRCommentTemplateSet {
+	if !repoCfg.PRCommentConfigured || !repoCfg.PRCommentTemplateSet {
 		t.Fatalf("expected pr comment to be configured with template set")
 	}
-	if cfg.PRCommentModelSet {
+	if repoCfg.PRCommentModelSet {
 		t.Fatalf("expected pr comment model to be unset")
 	}
-	if cfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
-		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", cfg.IssueResponseTemplatePath)
+	if repoCfg.IssueResponseTemplatePath != "/tmp/issue.tmpl" {
+		t.Fatalf("expected issue response template path %s, got %s", "/tmp/issue.tmpl", repoCfg.IssueResponseTemplatePath)
 	}
-	if cfg.IssueResponseModel != defaultOpenCodeModel {
-		t.Fatalf("expected issue response model %s, got %s", defaultOpenCodeModel, cfg.IssueResponseModel)
+	if repoCfg.IssueResponseModel != defaultOpenCodeModel {
+		t.Fatalf("expected issue response model %s, got %s", defaultOpenCodeModel, repoCfg.IssueResponseModel)
 	}
-	if cfg.IssueTriggerPrefix != defaultIssueTriggerPrefix {
-		t.Fatalf("expected default issue trigger prefix %s, got %s", defaultIssueTriggerPrefix, cfg.IssueTriggerPrefix)
+	if repoCfg.IssueTriggerPrefix != defaultIssueTriggerPrefix {
+		t.Fatalf("expected default issue trigger prefix %s, got %s", defaultIssueTriggerPrefix, repoCfg.IssueTriggerPrefix)
 	}
-	if !cfg.IssueCommentConfigured || !cfg.IssueCommentTemplateSet {
+	if !repoCfg.IssueCommentConfigured || !repoCfg.IssueCommentTemplateSet {
 		t.Fatalf("expected issue comment to be configured with template set")
 	}
-	if cfg.IssueCommentModelSet {
+	if repoCfg.IssueCommentModelSet {
 		t.Fatalf("expected issue comment model to be unset")
 	}
 }
 
 func TestLoadInvalidJSON(t *testing.T) {
-	path := writeConfigFile(t, `{"opencode": {"port": "nope"}}`)
+	path := writeConfigFile(t, `{"repositories": {"acme/widgets": {"opencode": {"port": "nope"}}}}`)
 	t.Setenv("MORIBITO_CONFIG_PATH", path)
 	if _, err := Load(); err == nil {
 		t.Fatalf("expected error for invalid json")
@@ -111,30 +123,35 @@ func TestLoadOverrides(t *testing.T) {
 		"webhookSecret": "secret",
 		"apiBaseURL": "https://example.com"
 	},
-	"opencode": { "host": "opencode.local", "port": 1234, "longTimeoutSeconds": 120 },
 	"queue": { "workers": 5, "buffer": 200 },
-	"prOpen": { "templatePath": "/tmp/pr-open.tmpl", "model": "custom/open", "maxDiffLength": 123 },
-	"prComment": {
-		"templatePath": "/tmp/pr-comment.tmpl",
-		"model": "custom/comment",
-		"maxDiffLength": 321,
-		"triggerPrefix": "@bot"
-	},
-	"issueComment": {
-		"templatePath": "/tmp/issue.tmpl",
-		"model": "custom/issue",
-		"triggerPrefix": "@issue"
-	},
-	"issueLabel": {
-		"templatePath": "/tmp/issue-label.tmpl",
-		"model": "custom/issue-label",
-		"labels": ["triage", "needs-info"]
-	},
-	"prLabel": {
-		"templatePath": "/tmp/pr-label.tmpl",
-		"model": "custom/pr-label",
-		"maxDiffLength": 456,
-		"labels": ["needs-review"]
+	"repositories": {
+		"acme/widgets": {
+			"opencode": { "host": "opencode.local", "port": 1234, "longTimeoutSeconds": 120 },
+			"queue": { "workers": 2 },
+			"prOpen": { "templatePath": "/tmp/pr-open.tmpl", "model": "custom/open", "maxDiffLength": 123 },
+			"prComment": {
+				"templatePath": "/tmp/pr-comment.tmpl",
+				"model": "custom/comment",
+				"maxDiffLength": 321,
+				"triggerPrefix": "@bot"
+			},
+			"issueComment": {
+				"templatePath": "/tmp/issue.tmpl",
+				"model": "custom/issue",
+				"triggerPrefix": "@issue"
+			},
+			"issueLabel": {
+				"templatePath": "/tmp/issue-label.tmpl",
+				"model": "custom/issue-label",
+				"labels": ["triage", "needs-info"]
+			},
+			"prLabel": {
+				"templatePath": "/tmp/pr-label.tmpl",
+				"model": "custom/pr-label",
+				"maxDiffLength": 456,
+				"labels": ["needs-review"]
+			}
+		}
 	}
 }`)
 	t.Setenv("MORIBITO_CONFIG_PATH", path)
@@ -164,77 +181,85 @@ func TestLoadOverrides(t *testing.T) {
 	if cfg.GitHubAPIBaseURL != "https://example.com" {
 		t.Fatalf("expected apiBaseURL https://example.com, got %s", cfg.GitHubAPIBaseURL)
 	}
-	if cfg.OpenCodeHost != "opencode.local" {
-		t.Fatalf("expected opencode host opencode.local, got %s", cfg.OpenCodeHost)
-	}
-	if cfg.OpenCodePort != 1234 {
-		t.Fatalf("expected opencode port 1234, got %d", cfg.OpenCodePort)
-	}
-	if cfg.OpenCodeLongTimeout != 120*time.Second {
-		t.Fatalf("expected opencode long timeout 120s, got %s", cfg.OpenCodeLongTimeout)
-	}
 	if cfg.QueueWorkers != 5 {
 		t.Fatalf("expected queue workers 5, got %d", cfg.QueueWorkers)
 	}
 	if cfg.QueueBuffer != 200 {
 		t.Fatalf("expected queue buffer 200, got %d", cfg.QueueBuffer)
 	}
-	if cfg.PROpenModel != "custom/open" {
-		t.Fatalf("expected pr open model custom/open, got %s", cfg.PROpenModel)
+
+	repoCfg, ok := cfg.Repositories["acme/widgets"]
+	if !ok {
+		t.Fatalf("expected repository config for acme/widgets")
 	}
-	if cfg.PROpenMaxDiffLength != 123 {
-		t.Fatalf("expected pr open max diff length 123, got %d", cfg.PROpenMaxDiffLength)
+	if repoCfg.OpenCodeHost != "opencode.local" {
+		t.Fatalf("expected opencode host opencode.local, got %s", repoCfg.OpenCodeHost)
 	}
-	if !cfg.PROpenConfigured || !cfg.PROpenTemplateSet || !cfg.PROpenModelSet {
+	if repoCfg.OpenCodePort != 1234 {
+		t.Fatalf("expected opencode port 1234, got %d", repoCfg.OpenCodePort)
+	}
+	if repoCfg.OpenCodeLongTimeout != 120*time.Second {
+		t.Fatalf("expected opencode long timeout 120s, got %s", repoCfg.OpenCodeLongTimeout)
+	}
+	if repoCfg.QueueWorkersLimit != 2 {
+		t.Fatalf("expected repo queue workers limit 2, got %d", repoCfg.QueueWorkersLimit)
+	}
+	if repoCfg.PROpenModel != "custom/open" {
+		t.Fatalf("expected pr open model custom/open, got %s", repoCfg.PROpenModel)
+	}
+	if repoCfg.PROpenMaxDiffLength != 123 {
+		t.Fatalf("expected pr open max diff length 123, got %d", repoCfg.PROpenMaxDiffLength)
+	}
+	if !repoCfg.PROpenConfigured || !repoCfg.PROpenTemplateSet || !repoCfg.PROpenModelSet {
 		t.Fatalf("expected pr open to be configured with template/model set")
 	}
-	if cfg.PRCommentModel != "custom/comment" {
-		t.Fatalf("expected pr comment model custom/comment, got %s", cfg.PRCommentModel)
+	if repoCfg.PRCommentModel != "custom/comment" {
+		t.Fatalf("expected pr comment model custom/comment, got %s", repoCfg.PRCommentModel)
 	}
-	if cfg.PRCommentMaxDiffLength != 321 {
-		t.Fatalf("expected pr comment max diff length 321, got %d", cfg.PRCommentMaxDiffLength)
+	if repoCfg.PRCommentMaxDiffLength != 321 {
+		t.Fatalf("expected pr comment max diff length 321, got %d", repoCfg.PRCommentMaxDiffLength)
 	}
-	if cfg.PRCommentTriggerPrefix != "@bot" {
-		t.Fatalf("expected pr comment trigger prefix @bot, got %s", cfg.PRCommentTriggerPrefix)
+	if repoCfg.PRCommentTriggerPrefix != "@bot" {
+		t.Fatalf("expected pr comment trigger prefix @bot, got %s", repoCfg.PRCommentTriggerPrefix)
 	}
-	if !cfg.PRCommentConfigured || !cfg.PRCommentTemplateSet || !cfg.PRCommentModelSet {
+	if !repoCfg.PRCommentConfigured || !repoCfg.PRCommentTemplateSet || !repoCfg.PRCommentModelSet {
 		t.Fatalf("expected pr comment to be configured with template/model set")
 	}
-	if cfg.IssueResponseModel != "custom/issue" {
-		t.Fatalf("expected issue response model custom/issue, got %s", cfg.IssueResponseModel)
+	if repoCfg.IssueResponseModel != "custom/issue" {
+		t.Fatalf("expected issue response model custom/issue, got %s", repoCfg.IssueResponseModel)
 	}
-	if cfg.IssueTriggerPrefix != "@issue" {
-		t.Fatalf("expected issue trigger prefix @issue, got %s", cfg.IssueTriggerPrefix)
+	if repoCfg.IssueTriggerPrefix != "@issue" {
+		t.Fatalf("expected issue trigger prefix @issue, got %s", repoCfg.IssueTriggerPrefix)
 	}
-	if !cfg.IssueCommentConfigured || !cfg.IssueCommentTemplateSet || !cfg.IssueCommentModelSet {
+	if !repoCfg.IssueCommentConfigured || !repoCfg.IssueCommentTemplateSet || !repoCfg.IssueCommentModelSet {
 		t.Fatalf("expected issue comment to be configured with template/model set")
 	}
-	if cfg.IssueLabelTemplatePath != "/tmp/issue-label.tmpl" {
-		t.Fatalf("expected issue label template path /tmp/issue-label.tmpl, got %s", cfg.IssueLabelTemplatePath)
+	if repoCfg.IssueLabelTemplatePath != "/tmp/issue-label.tmpl" {
+		t.Fatalf("expected issue label template path /tmp/issue-label.tmpl, got %s", repoCfg.IssueLabelTemplatePath)
 	}
-	if cfg.IssueLabelModel != "custom/issue-label" {
-		t.Fatalf("expected issue label model custom/issue-label, got %s", cfg.IssueLabelModel)
+	if repoCfg.IssueLabelModel != "custom/issue-label" {
+		t.Fatalf("expected issue label model custom/issue-label, got %s", repoCfg.IssueLabelModel)
 	}
-	if !cfg.IssueLabelConfigured || !cfg.IssueLabelTemplateSet || !cfg.IssueLabelModelSet {
+	if !repoCfg.IssueLabelConfigured || !repoCfg.IssueLabelTemplateSet || !repoCfg.IssueLabelModelSet {
 		t.Fatalf("expected issue label to be configured with template/model set")
 	}
-	if len(cfg.IssueLabelTriggers) != 2 || cfg.IssueLabelTriggers[0] != "triage" || cfg.IssueLabelTriggers[1] != "needs-info" {
-		t.Fatalf("expected issue label triggers [triage needs-info], got %v", cfg.IssueLabelTriggers)
+	if len(repoCfg.IssueLabelTriggers) != 2 || repoCfg.IssueLabelTriggers[0] != "triage" || repoCfg.IssueLabelTriggers[1] != "needs-info" {
+		t.Fatalf("expected issue label triggers [triage needs-info], got %v", repoCfg.IssueLabelTriggers)
 	}
-	if cfg.PRLabelTemplatePath != "/tmp/pr-label.tmpl" {
-		t.Fatalf("expected pr label template path /tmp/pr-label.tmpl, got %s", cfg.PRLabelTemplatePath)
+	if repoCfg.PRLabelTemplatePath != "/tmp/pr-label.tmpl" {
+		t.Fatalf("expected pr label template path /tmp/pr-label.tmpl, got %s", repoCfg.PRLabelTemplatePath)
 	}
-	if cfg.PRLabelModel != "custom/pr-label" {
-		t.Fatalf("expected pr label model custom/pr-label, got %s", cfg.PRLabelModel)
+	if repoCfg.PRLabelModel != "custom/pr-label" {
+		t.Fatalf("expected pr label model custom/pr-label, got %s", repoCfg.PRLabelModel)
 	}
-	if cfg.PRLabelMaxDiffLength != 456 {
-		t.Fatalf("expected pr label max diff length 456, got %d", cfg.PRLabelMaxDiffLength)
+	if repoCfg.PRLabelMaxDiffLength != 456 {
+		t.Fatalf("expected pr label max diff length 456, got %d", repoCfg.PRLabelMaxDiffLength)
 	}
-	if !cfg.PRLabelConfigured || !cfg.PRLabelTemplateSet || !cfg.PRLabelModelSet {
+	if !repoCfg.PRLabelConfigured || !repoCfg.PRLabelTemplateSet || !repoCfg.PRLabelModelSet {
 		t.Fatalf("expected pr label to be configured with template/model set")
 	}
-	if len(cfg.PRLabelTriggers) != 1 || cfg.PRLabelTriggers[0] != "needs-review" {
-		t.Fatalf("expected pr label triggers [needs-review], got %v", cfg.PRLabelTriggers)
+	if len(repoCfg.PRLabelTriggers) != 1 || repoCfg.PRLabelTriggers[0] != "needs-review" {
+		t.Fatalf("expected pr label triggers [needs-review], got %v", repoCfg.PRLabelTriggers)
 	}
 }
 
@@ -271,8 +296,12 @@ func TestValidateForWebhook(t *testing.T) {
 	cfg = Config{
 		Addr:              ":8080",
 		GitHubWebhookPath: "/webhook",
-		PROpenConfigured:  true,
-		PROpenTemplateSet: true,
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				PROpenConfigured:  true,
+				PROpenTemplateSet: true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing prOpen.model when configured")
@@ -281,78 +310,110 @@ func TestValidateForWebhook(t *testing.T) {
 	cfg = Config{
 		Addr:              ":8080",
 		GitHubWebhookPath: "/webhook",
-		PROpenConfigured:  true,
-		PROpenModelSet:    true,
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				PROpenConfigured: true,
+				PROpenModelSet:   true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing prOpen.templatePath when configured")
 	}
 
 	cfg = Config{
-		Addr:                    ":8080",
-		GitHubWebhookPath:       "/webhook",
-		IssueCommentConfigured:  true,
-		IssueCommentTemplateSet: true,
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				IssueCommentConfigured:  true,
+				IssueCommentTemplateSet: true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing issueComment.model when configured")
 	}
 
 	cfg = Config{
-		Addr:                   ":8080",
-		GitHubWebhookPath:      "/webhook",
-		IssueCommentConfigured: true,
-		IssueCommentModelSet:   true,
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				IssueCommentConfigured: true,
+				IssueCommentModelSet:   true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing issueComment.templatePath when configured")
 	}
 
 	cfg = Config{
-		Addr:                 ":8080",
-		GitHubWebhookPath:    "/webhook",
-		PRCommentConfigured:  true,
-		PRCommentTemplateSet: true,
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				PRCommentConfigured:  true,
+				PRCommentTemplateSet: true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing prComment.model when configured")
 	}
 
 	cfg = Config{
-		Addr:                ":8080",
-		GitHubWebhookPath:   "/webhook",
-		PRCommentConfigured: true,
-		PRCommentModelSet:   true,
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				PRCommentConfigured: true,
+				PRCommentModelSet:   true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing prComment.templatePath when configured")
 	}
 
 	cfg = Config{
-		Addr:                  ":8080",
-		GitHubWebhookPath:     "/webhook",
-		IssueLabelConfigured:  true,
-		IssueLabelTemplateSet: true,
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				IssueLabelConfigured:  true,
+				IssueLabelTemplateSet: true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing issueLabel.model when configured")
 	}
 
 	cfg = Config{
-		Addr:                 ":8080",
-		GitHubWebhookPath:    "/webhook",
-		IssueLabelConfigured: true,
-		IssueLabelModelSet:   true,
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				IssueLabelConfigured: true,
+				IssueLabelModelSet:   true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing issueLabel.templatePath when configured")
 	}
 
 	cfg = Config{
-		Addr:               ":8080",
-		GitHubWebhookPath:  "/webhook",
-		PRLabelConfigured:  true,
-		PRLabelTemplateSet: true,
+		Addr:              ":8080",
+		GitHubWebhookPath: "/webhook",
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				PRLabelConfigured:  true,
+				PRLabelTemplateSet: true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing prLabel.model when configured")
@@ -361,8 +422,12 @@ func TestValidateForWebhook(t *testing.T) {
 	cfg = Config{
 		Addr:              ":8080",
 		GitHubWebhookPath: "/webhook",
-		PRLabelConfigured: true,
-		PRLabelModelSet:   true,
+		Repositories: map[string]RepositoryConfig{
+			"acme/widgets": {
+				PRLabelConfigured: true,
+				PRLabelModelSet:   true,
+			},
+		},
 	}
 	if err := cfg.ValidateForWebhook(); err == nil {
 		t.Fatalf("expected error for missing prLabel.templatePath when configured")

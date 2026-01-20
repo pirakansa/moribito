@@ -12,8 +12,9 @@ import (
 
 // Job represents a background task to be executed by a worker.
 type Job struct {
-	Name string                          // Name identifies the job type for logging
-	Run  func(ctx context.Context) error // Run executes the job logic
+	Name         string                          // Name identifies the job type for logging
+	RepoFullName string                          // RepoFullName scopes per-repo limits when set
+	Run          func(ctx context.Context) error // Run executes the job logic
 }
 
 // Queue is an in-memory job queue with a pool of worker goroutines.

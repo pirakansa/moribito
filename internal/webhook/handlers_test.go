@@ -6,6 +6,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/review"
 )
 
@@ -24,7 +25,7 @@ func (m *mockReviewer) OnPullRequestOpened(_ context.Context, pr review.PullRequ
 func TestHandleInstallationInvalidJSON(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
 	handler := HandleInstallation(logger, nil)
-	if err := handler(context.Background(), "installation", "d1", []byte("{")); err == nil {
+	if _, err := handler(context.Background(), "installation", "d1", []byte("{")); err == nil {
 		t.Fatalf("expected error for invalid json")
 	}
 }
@@ -36,7 +37,7 @@ func TestHandleInstallationRepositories(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
-	if err := handler(context.Background(), "installation_repositories", "d1", body); err != nil {
+	if _, err := handler(context.Background(), "installation_repositories", "d1", body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -48,19 +49,21 @@ func TestHandleInstallationFixture(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
-	if err := handler(context.Background(), "installation", "d1", body); err != nil {
+	if _, err := handler(context.Background(), "installation", "d1", body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestHandlePullRequest(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandlePullRequest(logger, nil, nil, nil)
+	handler := HandlePullRequest(logger, nil, func(string) (review.Reviewer, review.PRCommenter, *issue.Service, bool) {
+		return nil, nil, nil, true
+	})
 	body, err := readFixture("pull_request.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
-	if err := handler(context.Background(), "pull_request", "d1", body); err != nil {
+	if _, err := handler(context.Background(), "pull_request", "d1", body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
@@ -68,12 +71,14 @@ func TestHandlePullRequest(t *testing.T) {
 func TestHandlePullRequestOpened(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
 	reviewer := &mockReviewer{}
-	handler := HandlePullRequest(logger, nil, reviewer, nil)
+	handler := HandlePullRequest(logger, nil, func(string) (review.Reviewer, review.PRCommenter, *issue.Service, bool) {
+		return reviewer, nil, nil, true
+	})
 	body, err := readFixture("pull_request.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
-	if err := handler(context.Background(), "pull_request", "d1", body); err != nil {
+	if _, err := handler(context.Background(), "pull_request", "d1", body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// Note: With nil submitter, the job is not enqueued, so reviewer is not called.
@@ -82,36 +87,42 @@ func TestHandlePullRequestOpened(t *testing.T) {
 
 func TestHandleIssueComment(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleIssueComment(logger, nil, nil, nil)
+	handler := HandleIssueComment(logger, nil, func(string) (review.Reviewer, review.PRCommenter, *issue.Service, bool) {
+		return nil, nil, nil, true
+	})
 	body, err := readFixture("issue_comment.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
-	if err := handler(context.Background(), "issue_comment", "d1", body); err != nil {
+	if _, err := handler(context.Background(), "issue_comment", "d1", body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestHandleIssues(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleIssues(logger, nil, nil)
+	handler := HandleIssues(logger, nil, func(string) (review.Reviewer, review.PRCommenter, *issue.Service, bool) {
+		return nil, nil, nil, true
+	})
 	body, err := readFixture("issues_labeled.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
-	if err := handler(context.Background(), "issues", "d1", body); err != nil {
+	if _, err := handler(context.Background(), "issues", "d1", body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
 func TestHandleCheckRun(t *testing.T) {
 	logger := log.New(&bytes.Buffer{}, "test: ", 0)
-	handler := HandleCheckRun(logger, nil)
+	handler := HandleCheckRun(logger, nil, func(string) (review.Reviewer, review.PRCommenter, *issue.Service, bool) {
+		return nil, nil, nil, true
+	})
 	body, err := readFixture("check_run.json")
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
-	if err := handler(context.Background(), "check_run", "d1", body); err != nil {
+	if _, err := handler(context.Background(), "check_run", "d1", body); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

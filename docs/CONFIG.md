@@ -21,46 +21,53 @@ Set the JSON config path via:
     "webhookSecret": "secret",
     "apiBaseURL": "https://api.github.com"
   },
-  "opencode": {
-    "host": "127.0.0.1",
-    "port": 4096,
-    "longTimeoutSeconds": 600
-  },
   "queue": {
     "workers": 2,
     "buffer": 100
   },
-  "prOpen": {
-    "templatePath": "docs/templates/pr-response-open.md.tmpl",
-    "model": "opencode/big-pickle",
-    "maxDiffLength": 50000
-  },
-  "prComment": {
-    "templatePath": "docs/templates/pr-response-comment.md.tmpl",
-    "model": "opencode/big-pickle",
-    "maxDiffLength": 50000,
-    "triggerPrefix": "@moribito"
-  },
-  "issueComment": {
-    "templatePath": "docs/templates/issue-response.md.tmpl",
-    "model": "opencode/big-pickle",
-    "triggerPrefix": "@moribito"
-  },
-  "issueLabel": {
-    "templatePath": "docs/templates/issue-response.md.tmpl",
-    "model": "opencode/big-pickle",
-    "labels": ["needs-triage", "ai-response"]
-  },
-  "prLabel": {
-    "templatePath": "docs/templates/pr-response-comment.md.tmpl",
-    "model": "opencode/big-pickle",
-    "maxDiffLength": 50000,
-    "labels": ["needs-review"]
+  "repositories": {
+    "pirakansa/moribito": {
+      "opencode": {
+        "host": "127.0.0.1",
+        "port": 4096,
+        "longTimeoutSeconds": 600
+      },
+      "queue": {
+        "workers": 2
+      },
+      "prOpen": {
+        "templatePath": "docs/templates/pr-response-open.md.tmpl",
+        "model": "opencode/big-pickle",
+        "maxDiffLength": 50000
+      },
+      "prComment": {
+        "templatePath": "docs/templates/pr-response-comment.md.tmpl",
+        "model": "opencode/big-pickle",
+        "maxDiffLength": 50000,
+        "triggerPrefix": "@moribito"
+      },
+      "issueComment": {
+        "templatePath": "docs/templates/issue-response.md.tmpl",
+        "model": "opencode/big-pickle",
+        "triggerPrefix": "@moribito"
+      },
+      "issueLabel": {
+        "templatePath": "docs/templates/issue-response.md.tmpl",
+        "model": "opencode/big-pickle",
+        "labels": ["needs-triage", "ai-response"]
+      },
+      "prLabel": {
+        "templatePath": "docs/templates/pr-response-comment.md.tmpl",
+        "model": "opencode/big-pickle",
+        "maxDiffLength": 50000,
+        "labels": ["needs-review"]
+      }
+    }
   }
 }
 ```
 
-Defaults apply when fields are omitted. Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely. `prOpen` / `prComment` / `issueComment` / `issueLabel` / `prLabel` are optional, but when present they require `templatePath` and a model.
+Repository-specific settings live under `repositories`. If a webhook event arrives for a repository not listed, it is skipped without logging. `repositories.<repo>.queue.workers` sets the per-repository concurrency limit (0 or omitted disables the limit). Set `prOpen.maxDiffLength` or `prComment.maxDiffLength` to `0` to omit diffs entirely. `prOpen` / `prComment` / `issueComment` / `issueLabel` / `prLabel` are optional, but when present they require `templatePath` and a model.
 
 ## Template Variables
 
@@ -131,16 +138,22 @@ When configured, the app responds to issue or PR label events that match the con
 
 Example:
 ```
-"issueLabel": {
-  "templatePath": "docs/templates/issue-response.md.tmpl",
-  "model": "opencode/big-pickle",
-  "labels": ["needs-triage"]
-},
-"prLabel": {
-  "templatePath": "docs/templates/pr-response-comment.md.tmpl",
-  "model": "opencode/big-pickle",
-  "maxDiffLength": 50000,
-  "labels": ["needs-review"]
+{
+  "repositories": {
+    "pirakansa/moribito": {
+      "issueLabel": {
+        "templatePath": "docs/templates/issue-response.md.tmpl",
+        "model": "opencode/big-pickle",
+        "labels": ["needs-triage"]
+      },
+      "prLabel": {
+        "templatePath": "docs/templates/pr-response-comment.md.tmpl",
+        "model": "opencode/big-pickle",
+        "maxDiffLength": 50000,
+        "labels": ["needs-review"]
+      }
+    }
+  }
 }
 ```
 
