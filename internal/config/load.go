@@ -52,6 +52,24 @@ func applyFileConfig(cfg *Config, fileCfg fileConfig) {
 	if fileCfg.GitHub.APIBaseURL != "" {
 		cfg.GitHubAPIBaseURL = fileCfg.GitHub.APIBaseURL
 	}
+	if fileCfg.Queue.Workers != nil {
+		cfg.QueueWorkers = *fileCfg.Queue.Workers
+	}
+	if fileCfg.Queue.Buffer != nil {
+		cfg.QueueBuffer = *fileCfg.Queue.Buffer
+	}
+	for repoName, repoFileCfg := range fileCfg.Repositories {
+		repoName = strings.TrimSpace(repoName)
+		if repoName == "" {
+			continue
+		}
+		repoCfg := defaultRepositoryConfig()
+		applyRepositoryFileConfig(&repoCfg, repoFileCfg)
+		cfg.Repositories[repoName] = repoCfg
+	}
+}
+
+func applyRepositoryFileConfig(cfg *RepositoryConfig, fileCfg repositoryFileConfig) {
 	if fileCfg.OpenCode.Host != "" {
 		cfg.OpenCodeHost = fileCfg.OpenCode.Host
 	}
@@ -60,12 +78,6 @@ func applyFileConfig(cfg *Config, fileCfg fileConfig) {
 	}
 	if fileCfg.OpenCode.LongTimeoutSeconds != nil {
 		cfg.OpenCodeLongTimeout = time.Duration(*fileCfg.OpenCode.LongTimeoutSeconds) * time.Second
-	}
-	if fileCfg.Queue.Workers != nil {
-		cfg.QueueWorkers = *fileCfg.Queue.Workers
-	}
-	if fileCfg.Queue.Buffer != nil {
-		cfg.QueueBuffer = *fileCfg.Queue.Buffer
 	}
 	if fileCfg.PROpen.TemplatePath != "" {
 		cfg.PROpenTemplatePath = fileCfg.PROpen.TemplatePath

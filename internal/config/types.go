@@ -12,14 +12,20 @@ type Config struct {
 	GitHubAPIBaseURL  string // GitHub API base URL (for Enterprise Server)
 	GitHubWebhookPath string // Webhook endpoint path
 
+	// Queue configuration
+	QueueWorkers int // Number of worker goroutines for background jobs
+	QueueBuffer  int // Queue buffer size
+
+	// Repository-specific settings
+	Repositories map[string]RepositoryConfig
+}
+
+// RepositoryConfig holds per-repository settings.
+type RepositoryConfig struct {
 	// OpenCode server configuration
 	OpenCodeHost        string        // OpenCode server hostname (default: 127.0.0.1)
 	OpenCodePort        int           // OpenCode server port (default: 4096)
 	OpenCodeLongTimeout time.Duration // Timeout for long-running OpenCode requests
-
-	// Queue configuration
-	QueueWorkers int // Number of worker goroutines for background jobs
-	QueueBuffer  int // Queue buffer size
 
 	// PR open response configuration
 	PROpenTemplatePath  string // PR open prompt template file path

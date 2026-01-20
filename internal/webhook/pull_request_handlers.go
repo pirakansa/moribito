@@ -13,11 +13,16 @@ import (
 // HandlePullRequest returns a handler for pull request events.
 // Actions include: opened, closed, reopened, synchronize, etc.
 // When action is "opened", it triggers the review service for automated code review.
-func HandlePullRequest(logger *log.Logger, submitter Submitter, reviewer review.Reviewer, prCommenter review.PRCommenter) Handler {
-	return func(ctx context.Context, event, delivery string, body []byte) error {
+func HandlePullRequest(logger *log.Logger, submitter Submitter, resolver RepoServiceResolver) Handler {
+	return func(ctx context.Context, event, delivery string, body []byte) (HandleResult, error) {
 		payload, err := decodeJSON[pullRequestPayload](body)
 		if err != nil {
-			return fmt.Errorf("decode pull_request payload: %w", err)
+			return HandleResult{}, fmt.Errorf("decode pull_request payload: %w", err)
+		}
+
+		reviewer, prCommenter, _, ok := resolveRepoServices(resolver, payload.Repository.FullName)
+		if !ok {
+			return HandleResult{Skipped: true}, nil
 		}
 
 		logger.Printf("event=%s delivery=%s action=%s repo=%s number=%d",
@@ -31,7 +36,7 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter, reviewer review.
 				Action:         payload.Action,
 				InstallationID: payload.Installation.ID,
 			}
-			return enqueueJob(ctx, logger, submitter, queue.Job{
+			return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
 				Name: "pull_request_opened",
 				Run: func(jobCtx context.Context) error {
 					logger.Printf("job=pull_request_opened repo=%s number=%d",
@@ -44,7 +49,7 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter, reviewer review.
 		if payload.Action == "labeled" && prCommenter != nil {
 			owner, repo, perr := githubapp.ParseRepoFullName(payload.Repository.FullName)
 			if perr != nil {
-				return fmt.Errorf("parse repo name: %w", perr)
+				return HandleResult{}, fmt.Errorf("parse repo name: %w", perr)
 			}
 
 			evt := review.PRLabelEvent{
@@ -56,7 +61,7 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter, reviewer review.
 				Labeler:        payload.Sender.Login,
 			}
 
-			return enqueueJob(ctx, logger, submitter, queue.Job{
+			return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
 				Name: "pull_request_labeled_response",
 				Run: func(jobCtx context.Context) error {
 					logger.Printf("job=pull_request_labeled_response repo=%s number=%d label=%s",
@@ -66,7 +71,7 @@ func HandlePullRequest(logger *log.Logger, submitter Submitter, reviewer review.
 			})
 		}
 
-		return enqueueJob(ctx, logger, submitter, queue.Job{
+		return HandleResult{}, enqueueJob(ctx, logger, submitter, queue.Job{
 			Name: "pull_request",
 			Run: func(_ context.Context) error {
 				logger.Printf("job=pull_request action=%s repo=%s number=%d",

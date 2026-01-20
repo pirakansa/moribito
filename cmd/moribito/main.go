@@ -13,9 +13,7 @@ import (
 
 	"github.com/pirakansa/moribito/internal/config"
 	"github.com/pirakansa/moribito/internal/githubapp"
-	"github.com/pirakansa/moribito/internal/opencode"
 	"github.com/pirakansa/moribito/internal/queue"
-	"github.com/pirakansa/moribito/internal/review"
 	"github.com/pirakansa/moribito/internal/server"
 )
 
@@ -66,30 +64,13 @@ func run() error {
 		HTTPClient:     &http.Client{Timeout: 30 * time.Second},
 	})
 
-	// Create OpenCode client for AI-powered reviews (optional)
-	reviewOpts, ocClient, err := createOpenCodeOptions(cfg, logger)
+	repoServices, healthClients, err := createRepositoryServices(cfg, logger, clientFactory)
 	if err != nil {
 		return err
 	}
 
-	var reviewer review.Reviewer
-	if cfg.PROpenConfigured {
-		reviewer = review.NewService(logger, clientFactory, reviewOpts...)
-	}
-
-	// Create Issue service for AI-powered issue responses
-	issueService, err := createIssueService(cfg, logger, clientFactory, ocClient)
-	if err != nil {
-		return err
-	}
-
-	healthClient := opencode.NewClient(cfg.OpenCodeHost, cfg.OpenCodePort, opencode.WithLongTimeout(cfg.OpenCodeLongTimeout))
-	prCommentService, err := createPRCommentService(cfg, logger, clientFactory, ocClient)
-	if err != nil {
-		return err
-	}
-
-	srv := server.New(cfg, logger, jobQueue, reviewer, issueService, prCommentService, healthClient, cfg.QueueWorkers, cfg.QueueBuffer)
+	resolver := repoServiceResolver{services: repoServices}
+	srv := server.New(cfg, logger, jobQueue, resolver.Resolve, healthClients, cfg.QueueWorkers, cfg.QueueBuffer)
 	httpServer := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           srv.Handler(),

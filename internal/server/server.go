@@ -14,9 +14,7 @@ import (
 
 	"github.com/pirakansa/moribito/internal/config"
 	"github.com/pirakansa/moribito/internal/githubapp"
-	"github.com/pirakansa/moribito/internal/issue"
 	"github.com/pirakansa/moribito/internal/opencode"
-	"github.com/pirakansa/moribito/internal/review"
 	"github.com/pirakansa/moribito/internal/webhook"
 )
 
@@ -24,23 +22,23 @@ import (
 // It manages webhook signature verification, event routing,
 // and health check endpoints.
 type Server struct {
-	cfg          config.Config
-	logger       *log.Logger
-	handler      *webhook.Router
-	opencode     *opencode.Client
-	queueWorkers int
-	queueBuffer  int
+	cfg             config.Config
+	logger          *log.Logger
+	handler         *webhook.Router
+	opencodeClients []*opencode.Client
+	queueWorkers    int
+	queueBuffer     int
 }
 
 // New creates a Server with the given configuration and dependencies.
-func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, reviewer review.Reviewer, issueService *issue.Service, prCommenter review.PRCommenter, ocClient *opencode.Client, queueWorkers, queueBuffer int) *Server {
+func New(cfg config.Config, logger *log.Logger, submitter webhook.Submitter, resolver webhook.RepoServiceResolver, ocClients []*opencode.Client, queueWorkers, queueBuffer int) *Server {
 	return &Server{
-		cfg:          cfg,
-		logger:       logger,
-		handler:      webhook.NewRouter(logger, submitter, reviewer, issueService, prCommenter),
-		opencode:     ocClient,
-		queueWorkers: queueWorkers,
-		queueBuffer:  queueBuffer,
+		cfg:             cfg,
+		logger:          logger,
+		handler:         webhook.NewRouter(logger, submitter, resolver),
+		opencodeClients: ocClients,
+		queueWorkers:    queueWorkers,
+		queueBuffer:     queueBuffer,
 	}
 }
 
@@ -85,31 +83,46 @@ func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	}
 
 	status := http.StatusOK
-	if s.opencode == nil {
+	if len(s.opencodeClients) == 0 {
 		status = http.StatusServiceUnavailable
 	} else {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 
-		health, err := s.opencode.Health(ctx)
-		if err != nil || !health.Healthy {
-			status = http.StatusServiceUnavailable
-		} else {
-			resp.OpenCode.Connected = true
-			resp.OpenCode.Version = health.Version
+		var version string
+		connected := true
 
-			sessions, err := s.opencode.GetSessionStatus(ctx)
+		for _, client := range s.opencodeClients {
+			if client == nil {
+				connected = false
+				continue
+			}
+			health, err := client.Health(ctx)
+			if err != nil || !health.Healthy {
+				connected = false
+				continue
+			}
+			if version == "" {
+				version = health.Version
+			} else if version != health.Version {
+				version = "mixed"
+			}
+			sessions, err := client.GetSessionStatus(ctx)
 			if err != nil {
-				resp.OpenCode.Connected = false
-				resp.OpenCode.Version = ""
-				status = http.StatusServiceUnavailable
-			} else {
-				for _, session := range sessions {
-					if session.Running {
-						resp.OpenCode.RunningSessions++
-					}
+				connected = false
+				continue
+			}
+			for _, session := range sessions {
+				if session.Running {
+					resp.OpenCode.RunningSessions++
 				}
 			}
+		}
+
+		resp.OpenCode.Connected = connected
+		resp.OpenCode.Version = version
+		if !connected {
+			status = http.StatusServiceUnavailable
 		}
 	}
 
@@ -154,11 +167,14 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if err := s.handler.Handle(context.Background(), event, delivery, body); err != nil {
+	result, err := s.handler.Handle(context.Background(), event, delivery, body)
+	if err != nil {
 		s.writeError(w, http.StatusInternalServerError, err, requestID, delivery)
 		return
 	}
-	s.logger.Printf("webhook received event=%s delivery=%s request_id=%s bytes=%d", event, delivery, requestID, len(body))
+	if !result.Skipped {
+		s.logger.Printf("webhook received event=%s delivery=%s request_id=%s bytes=%d", event, delivery, requestID, len(body))
+	}
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok"))
 }

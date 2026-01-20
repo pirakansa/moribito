@@ -27,44 +27,53 @@ func (c Config) ValidateForWebhook() error {
 	if strings.TrimSpace(c.GitHubWebhookPath) == "" {
 		return fmt.Errorf("server.webhookPath is required")
 	}
+	for repoName, repoCfg := range c.Repositories {
+		if err := repoCfg.validateForWebhook(repoName); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c RepositoryConfig) validateForWebhook(repoName string) error {
 	if c.PROpenConfigured {
 		if !c.PROpenTemplateSet {
-			return fmt.Errorf("prOpen.templatePath is required")
+			return fmt.Errorf("repositories.%s.prOpen.templatePath is required", repoName)
 		}
 		if !c.PROpenModelSet {
-			return fmt.Errorf("prOpen.model is required")
+			return fmt.Errorf("repositories.%s.prOpen.model is required", repoName)
 		}
 	}
 	if c.PRCommentConfigured {
 		if !c.PRCommentTemplateSet {
-			return fmt.Errorf("prComment.templatePath is required")
+			return fmt.Errorf("repositories.%s.prComment.templatePath is required", repoName)
 		}
 		if !c.PRCommentModelSet {
-			return fmt.Errorf("prComment.model is required")
+			return fmt.Errorf("repositories.%s.prComment.model is required", repoName)
 		}
 	}
 	if c.IssueCommentConfigured {
 		if !c.IssueCommentTemplateSet {
-			return fmt.Errorf("issueComment.templatePath is required")
+			return fmt.Errorf("repositories.%s.issueComment.templatePath is required", repoName)
 		}
 		if !c.IssueCommentModelSet {
-			return fmt.Errorf("issueComment.model is required")
+			return fmt.Errorf("repositories.%s.issueComment.model is required", repoName)
 		}
 	}
 	if c.IssueLabelConfigured {
 		if !c.IssueLabelTemplateSet {
-			return fmt.Errorf("issueLabel.templatePath is required")
+			return fmt.Errorf("repositories.%s.issueLabel.templatePath is required", repoName)
 		}
 		if !c.IssueLabelModelSet {
-			return fmt.Errorf("issueLabel.model is required")
+			return fmt.Errorf("repositories.%s.issueLabel.model is required", repoName)
 		}
 	}
 	if c.PRLabelConfigured {
 		if !c.PRLabelTemplateSet {
-			return fmt.Errorf("prLabel.templatePath is required")
+			return fmt.Errorf("repositories.%s.prLabel.templatePath is required", repoName)
 		}
 		if !c.PRLabelModelSet {
-			return fmt.Errorf("prLabel.model is required")
+			return fmt.Errorf("repositories.%s.prLabel.model is required", repoName)
 		}
 	}
 	return nil
