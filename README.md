@@ -8,6 +8,9 @@
   A GitHub App appointed to oversee issues, reviews, and entrusted operations within your repository.
 </p>
 
+> **📦 Archive Notice**  
+> This repository is no longer actively maintained. The functionality I needed has been implemented in [OpenCode](https://opencode.ai), so I have decided to discontinue maintenance of this project. Thank you for your interest and support.
+
 ---
 
 ## About
